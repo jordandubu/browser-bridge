@@ -5,6 +5,7 @@
   "description": "Lets opencode read page content",
   "license": "MIT",
   "permissions": ["nativeMessaging", "activeTab", "<all_urls>"],
+  "data_collection_permissions": ["active_tab_data", "web_content"],
   "background": {
     "scripts": ["background.js"]
   },
