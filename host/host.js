@@ -2,7 +2,7 @@
 const net = require("net");
 const fs = require("fs");
 
-const SOCK = "/tmp/opencode-bridge.sock";
+const SOCK = "/tmp/firefox-bridge.sock";
 
 fs.unlink(SOCK, () => {});
 

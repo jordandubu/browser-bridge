@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const net = require("net");
 
-const SOCK = "/tmp/opencode-bridge.sock";
+const SOCK = "/tmp/firefox-bridge.sock";
 
 function send(msg) {
   return new Promise((resolve, reject) => {

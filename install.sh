@@ -3,17 +3,17 @@ set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 HOST_DIR="$HOME/.mozilla/native-messaging-hosts"
-MANIFEST="$HOST_DIR/opencode_bridge.json"
+MANIFEST="$HOST_DIR/firefox_bridge.json"
 
 mkdir -p "$HOST_DIR"
 
 cat > "$MANIFEST" <<EOF
 {
-  "name": "opencode_bridge",
-  "description": "opencode page reader bridge",
+  "name": "firefox_bridge",
+  "description": "firefox-bridge native messaging host",
   "path": "$DIR/host/host.js",
   "type": "stdio",
-  "allowed_extensions": ["opencode-bridge@localhost"]
+  "allowed_extensions": ["firefox-bridge@localhost"]
 }
 EOF
 

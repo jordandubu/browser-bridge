@@ -1,0 +1,7 @@
+{
+  "name": "opencode_bridge",
+  "description": "opencode page reader bridge",
+  "path": "/home/jordandubu/Documents/repos/firefox-bridge/host.sh",
+  "type": "stdio",
+  "allowed_extensions": ["opencode-bridge@localhost"]
+}

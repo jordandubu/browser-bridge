@@ -1,7 +1,7 @@
 let port = null;
 
 function connect() {
-  port = browser.runtime.connectNative("opencode_bridge");
+  port = browser.runtime.connectNative("firefox_bridge");
   port.onMessage.addListener(msg => {
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (!tabs.length) {
