@@ -17,7 +17,9 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "opencode-bridge@localhost",
-      "data_collection_permissions": ["active_tab_data", "web_content"]
+      "data_collection_permissions": {
+        "required": ["active_tab_data", "web_content"]
+      }
     }
   }
 }
