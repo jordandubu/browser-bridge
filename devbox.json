@@ -6,10 +6,8 @@
       "echo 'Welcome to devbox!' > /dev/null"
     ],
     "scripts": {
-      "sign": [
-        "npm ci",
-        "npx web-ext sign --source-dir addon --channel listed --api-key $AMO_API_KEY --api-secret $AMO_API_SECRET"
-      ]
+      "sign": "npx web-ext sign --source-dir addon --channel listed --api-key $AMO_API_KEY --api-secret $AMO_API_SECRET",
+      "sign:local": "devbox run --env-file .env sign"
     }
   }
 }
