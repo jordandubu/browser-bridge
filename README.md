@@ -1,64 +1,46 @@
 # firefox-bridge
 
-Firefox addon + MCP server that lets opencode read and interact with web pages.
+Bridge opencode into your browser. Read pages, execute JavaScript, and audit for security flaws — all from your terminal. Purpose-built for bug bounty hunting.
 
-## What it does
+## How it works
 
-- **`firefox_read`** — extract all text from active tab (visible + hidden)
-- **`firefox_html`** — get full page HTML
-- **`firefox_js`** — run arbitrary JavaScript on the page
-- **`firefox_security`** — extract security surface: forms, scripts, cookies, storage, external domains, meta tags
-
-## Architecture
-
-```
-opencode → MCP server (stdio) → Unix socket → host.js (native messaging) → Firefox addon → page
-```
+You browse a site in Firefox. opencode sees the page, runs JS, and spots vulnerabilities in real time. No proxies, no setup, just a browser extension and an MCP server.
 
 ## Install
 
 ```bash
+git clone https://github.com/jordandubu/firefox-bridge
+cd firefox-bridge
 npm install
 ./install.sh
 ```
 
-`install.sh` sets up the native messaging host so Firefox can talk to the bridge.
-
-Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org) (or for dev: `npm run build` then sideload the `.xpi`).
-
-## MCP config
-
-Add to `~/.config/opencode/opencode.jsonc`:
+Then add this to `~/.config/opencode/opencode.jsonc`:
 
 ```jsonc
-{
-  "mcp": {
-    "firefox-bridge": {
-      "type": "local",
-      "command": "node",
-      "args": ["/path/to/firefox-bridge/host/mcp-server.js"]
-    }
+"mcp": {
+  "firefox-bridge": {
+    "type": "local",
+    "command": "node",
+    "args": ["/path/to/firefox-bridge/host/mcp-server.js"]
   }
 }
 ```
 
-## CLI usage
+Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org).
 
-```bash
-node host/bridge.js              # read page text
-node host/bridge.js html         # get page HTML
-node host/bridge.js js "document.title"  # run JS
-node host/bridge.js security     # extract security data
-```
+## Tools
+
+| Tool | What it does |
+|------|-------------|
+| `firefox_read` | Extract all visible text from the active tab |
+| `firefox_html` | Get full page HTML |
+| `firefox_js` | Run arbitrary JavaScript and return the result |
+| `firefox_security` | Collect forms, scripts, cookies, storage, external domains, meta tags for vulnerability analysis |
 
 ## Files
 
 | Path | Role |
 |------|------|
-| `addon/manifest.json` | Firefox addon manifest |
-| `addon/background.js` | Native messaging relay |
-| `addon/content.js` | Content script: read, html, js, security extraction |
-| `host/host.js` | Native messaging host + Unix socket server |
-| `host/mcp-server.js` | MCP stdio server for opencode |
-| `host/bridge.js` | CLI client for testing |
-| `install.sh` | Install native messaging host manifest |
+| `addon/` | Firefox extension (manifest, background, content scripts) |
+| `host/` | Native messaging host, MCP server, CLI client |
