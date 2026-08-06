@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "Bridge opencode into your browser. Read pages, execute JS, audit security — from your terminal.",
   "license": "MIT",
-  "permissions": ["nativeMessaging", "activeTab", "<all_urls>"],
+  "permissions": ["nativeMessaging", "activeTab", "<all_urls>", "webRequest"],
   "background": {
     "scripts": ["background.js"]
   },

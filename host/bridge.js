@@ -20,6 +20,8 @@ sock.on("data", chunk => {
 
 const cmd = process.argv[2] || "read";
 const code = process.argv[3] || "";
-sock.write(JSON.stringify({ cmd, code }) + "\n");
+const url = process.argv[3] || "";
+const newTab = process.argv[4] !== "false";
+sock.write(JSON.stringify({ cmd, code, url, newTab }) + "\n");
 
 setTimeout(() => { sock.end(); process.exit(0); }, 5000);

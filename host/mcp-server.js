@@ -47,6 +47,40 @@ const TOOLS = [
     name: "browser_security",
     description: "Extract security-relevant data from the active tab: forms, scripts, cookies, storage, external domains, meta tags. Use to audit a page for web vulnerabilities.",
     inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "browser_navigate",
+    description: "Navigate to a URL. Opens in a new tab by default, or reuse the current tab if newTab is false.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "URL to navigate to" },
+        newTab: { type: "boolean", description: "Open in new tab (default true). Set false to reuse current tab." }
+      },
+      required: ["url"]
+    }
+  },
+  {
+    name: "browser_console",
+    description: "Capture console.log/error/warn/info/debug output from the page. Returns logs collected since page load (up to 500).",
+    inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "browser_network",
+    description: "Capture ALL network requests from the active tab (page load + fetch/XHR). Returns up to 500 requests with URL, method, type, timestamp.",
+    inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "browser_tabs",
+    description: "List all open tabs or switch to a specific tab by index.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", description: "'list' to list all tabs, 'switch' to activate a tab" },
+        tabId: { type: "number", description: "Tab index (0-based) to switch to. Required when action is 'switch'." }
+      },
+      required: ["action"]
+    }
   }
 ];
 
@@ -82,6 +116,14 @@ async function handle(line) {
           result = await send({ cmd: "js", code: args.code });
         } else if (name === "browser_security") {
           result = await send({ cmd: "security" });
+        } else if (name === "browser_navigate") {
+          result = await send({ cmd: "navigate", url: args.url, newTab: args.newTab !== false });
+        } else if (name === "browser_console") {
+          result = await send({ cmd: "console" });
+        } else if (name === "browser_network") {
+          result = await send({ cmd: "network" });
+        } else if (name === "browser_tabs") {
+          result = await send({ cmd: "tabs", action: args.action, tabId: args.tabId });
         }
         respond(id, { content: [{ type: "text", text: JSON.stringify(result) }] });
       } catch (e) {

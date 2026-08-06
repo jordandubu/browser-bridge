@@ -54,6 +54,9 @@ Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org). 
 | `browser_html` | Get full page HTML |
 | `browser_js` | Run arbitrary JavaScript and return the result |
 | `browser_security` | Collect forms, scripts, cookies, storage, external domains, meta tags for vulnerability analysis |
+| `browser_navigate` | Navigate to a URL (new tab by default, or reuse current tab) |
+| `browser_console` | Capture console.log/error/warn/info/debug output (up to 500 entries) |
+| `browser_network` | Capture ALL network requests (page load + fetch/XHR) with URL, method, type |
 
 ### Example: security audit
 
