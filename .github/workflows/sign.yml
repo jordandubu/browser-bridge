@@ -1,0 +1,19 @@
+name: Sign & Submit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - addon/**
+      - package.json
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npx web-ext sign --source-dir addon --channel listed --api-key ${{ secrets.AMO_API_KEY }} --api-secret ${{ secrets.AMO_API_SECRET }}
