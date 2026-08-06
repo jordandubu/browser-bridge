@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const net = require("net");
 
-const SOCK = "/tmp/firefox-bridge.sock";
+const SOCK = "/tmp/browser-bridge.sock";
 const sock = net.createConnection(SOCK);
 
 let buf = "";

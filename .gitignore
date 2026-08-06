@@ -1,6 +1,6 @@
 node_modules/
 *.xpi
 web-ext-artifacts/
-firefox_bridge.json
+browser_bridge.json
 .devbox/
 .env

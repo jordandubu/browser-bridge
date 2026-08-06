@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "firefox-bridge",
+  "name": "browser-bridge",
   "version": "1.0",
-  "description": "Bridge opencode into Firefox. Read pages, execute JS, audit security — from your terminal.",
+  "description": "Bridge opencode into your browser. Read pages, execute JS, audit security — from your terminal.",
   "license": "MIT",
   "permissions": ["nativeMessaging", "activeTab", "<all_urls>"],
   "background": {
@@ -16,7 +16,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "firefox-bridge@localhost",
+      "id": "browser-bridge@localhost",
       "data_collection_permissions": {
         "required": ["none"]
       }

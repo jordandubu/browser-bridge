@@ -1,4 +1,4 @@
-# firefox-bridge
+# browser-bridge
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange)](https://addons.mozilla.org)
@@ -7,15 +7,15 @@ Bridge opencode into your browser. Read pages, execute JavaScript, and audit for
 
 ## Why
 
-Bug bounty hunters spend half their time switching between browser and tools. firefox-bridge puts opencode directly inside the page. Browse normally, then ask opencode to read the DOM, run JS, or scan for vulnerabilities — no proxies, no manual export, no context switching.
+Bug bounty hunters spend half their time switching between browser and tools. browser-bridge puts opencode directly inside the page. Browse normally, then ask opencode to read the DOM, run JS, or scan for vulnerabilities — no proxies, no manual export, no context switching.
 
 ## Architecture
 
 ```
-opencode ──▶ MCP server (stdio) ──▶ Unix socket ──▶ host.js (native messaging) ──▶ Firefox addon ──▶ page
+opencode ──▶ MCP server (stdio) ──▶ Unix socket ──▶ host.js (native messaging) ──▶ browser addon ──▶ page
 ```
 
-The MCP server talks to opencode over stdio. It forwards commands through a Unix socket to the native messaging host, which relays them into Firefox's active tab. Responses flow back the same way.
+The MCP server talks to opencode over stdio. It forwards commands through a Unix socket to the native messaging host, which relays them into the browser's active tab. Responses flow back the same way.
 
 ## Requirements
 
@@ -26,8 +26,8 @@ The MCP server talks to opencode over stdio. It forwards commands through a Unix
 ## Install
 
 ```bash
-git clone https://github.com/jordandubu/firefox-bridge
-cd firefox-bridge
+git clone https://github.com/jordandubu/browser-bridge
+cd browser-bridge
 npm install
 ./install.sh
 ```
@@ -36,10 +36,10 @@ npm install
 
 ```jsonc
 "mcp": {
-  "firefox-bridge": {
+  "browser-bridge": {
     "type": "local",
     "command": "node",
-    "args": ["/path/to/firefox-bridge/host/mcp-server.js"]
+    "args": ["/path/to/browser-bridge/host/mcp-server.js"]
   }
 }
 ```
@@ -50,16 +50,16 @@ Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org). 
 
 | Tool | Description |
 |------|-------------|
-| `firefox_read` | Extract all visible text from the active tab |
-| `firefox_html` | Get full page HTML |
-| `firefox_js` | Run arbitrary JavaScript and return the result |
-| `firefox_security` | Collect forms, scripts, cookies, storage, external domains, meta tags for vulnerability analysis |
+| `browser_read` | Extract all visible text from the active tab |
+| `browser_html` | Get full page HTML |
+| `browser_js` | Run arbitrary JavaScript and return the result |
+| `browser_security` | Collect forms, scripts, cookies, storage, external domains, meta tags for vulnerability analysis |
 
 ### Example: security audit
 
 ```
 User: audit this page for vulnerabilities
-opencode → firefox_security → returns forms, scripts, cookies, external domains
+opencode → browser_security → returns forms, scripts, cookies, external domains
 opencode: "Found 3 issues:
   1. Login form submits over HTTP (no TLS)
   2. No CSP meta tag detected
@@ -81,7 +81,7 @@ node host/bridge.js security     # extract security data
 
 | Path | Role |
 |------|------|
-| `addon/` | Firefox extension (manifest, background, content scripts) |
+| `addon/` | Browser extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
 
 ## Contributing

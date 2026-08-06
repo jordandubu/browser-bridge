@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const net = require("net");
 
-const SOCK = "/tmp/firefox-bridge.sock";
+const SOCK = "/tmp/browser-bridge.sock";
 
 function send(msg) {
   return new Promise((resolve, reject) => {
@@ -23,18 +23,18 @@ function send(msg) {
 
 const TOOLS = [
   {
-    name: "firefox_read",
-    description: "Read text content of the active Firefox tab. Returns all visible and hidden text nodes.",
+    name: "browser_read",
+    description: "Read text content of the active browser tab. Returns all visible and hidden text nodes.",
     inputSchema: { type: "object", properties: {} }
   },
   {
-    name: "firefox_html",
-    description: "Get full HTML of the active Firefox tab.",
+    name: "browser_html",
+    description: "Get full HTML of the active browser tab.",
     inputSchema: { type: "object", properties: {} }
   },
   {
-    name: "firefox_js",
-    description: "Execute arbitrary JavaScript on the active Firefox tab and return the result.",
+    name: "browser_js",
+    description: "Execute arbitrary JavaScript on the active browser tab and return the result.",
     inputSchema: {
       type: "object",
       properties: {
@@ -44,7 +44,7 @@ const TOOLS = [
     }
   },
   {
-    name: "firefox_security",
+    name: "browser_security",
     description: "Extract security-relevant data from the active tab: forms, scripts, cookies, storage, external domains, meta tags. Use to audit a page for web vulnerabilities.",
     inputSchema: { type: "object", properties: {} }
   }
@@ -56,20 +56,20 @@ process.stdin.on("data", async chunk => {
     const { id, method, params } = req;
 
     if (method === "initialize") {
-      respond(id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "firefox-bridge", version: "1.0" } });
+      respond(id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "browser-bridge", version: "1.0" } });
     } else if (method === "tools/list") {
       respond(id, { tools: TOOLS });
     } else if (method === "tools/call") {
       const { name, arguments: args } = params;
       try {
         let result;
-        if (name === "firefox_read") {
+        if (name === "browser_read") {
           result = await send({ cmd: "read" });
-        } else if (name === "firefox_html") {
+        } else if (name === "browser_html") {
           result = await send({ cmd: "html" });
-        } else if (name === "firefox_js") {
+        } else if (name === "browser_js") {
           result = await send({ cmd: "js", code: args.code });
-        } else if (name === "firefox_security") {
+        } else if (name === "browser_security") {
           result = await send({ cmd: "security" });
         }
         respond(id, { content: [{ type: "text", text: JSON.stringify(result) }] });

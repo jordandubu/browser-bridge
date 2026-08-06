@@ -3,17 +3,17 @@ set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 HOST_DIR="$HOME/.mozilla/native-messaging-hosts"
-MANIFEST="$HOST_DIR/firefox_bridge.json"
+MANIFEST="$HOST_DIR/browser_bridge.json"
 
 mkdir -p "$HOST_DIR"
 
 cat > "$MANIFEST" <<EOF
 {
-  "name": "firefox_bridge",
-  "description": "firefox-bridge native messaging host",
+  "name": "browser_bridge",
+  "description": "browser-bridge native messaging host",
   "path": "$DIR/host/host.js",
   "type": "stdio",
-  "allowed_extensions": ["firefox-bridge@localhost"]
+  "allowed_extensions": ["browser-bridge@localhost"]
 }
 EOF
 
@@ -27,7 +27,7 @@ echo "     (or: web-ext run --firefox=/usr/bin/firefox for development)"
 echo "  2. Add to ~/.config/opencode/opencode.jsonc:"
 echo ""
 echo "  \"mcp\": {"
-echo "    \"firefox-bridge\": {"
+echo "    \"browser-bridge\": {"
 echo "      \"type\": \"local\","
 echo "      \"command\": \"node\","
 echo "      \"args\": [\"$DIR/host/mcp-server.js\"]"
