@@ -6,6 +6,7 @@ on:
     paths:
       - addon/**
       - package.json
+  workflow_dispatch:
 
 jobs:
   sign:
