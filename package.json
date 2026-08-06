@@ -1,0 +1,12 @@
+{
+  "name": "firefox-bridge",
+  "version": "1.0.0",
+  "description": "Firefox addon that lets opencode read and interact with web pages",
+  "scripts": {
+    "build": "web-ext build --source-dir addon --overwrite-dest",
+    "lint": "web-ext lint --source-dir addon"
+  },
+  "devDependencies": {
+    "web-ext": "^8.0.0"
+  }
+}
