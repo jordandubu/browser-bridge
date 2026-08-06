@@ -50,9 +50,20 @@ const TOOLS = [
   }
 ];
 
-process.stdin.on("data", async chunk => {
+let stdinBuf = "";
+process.stdin.on("data", chunk => {
+  stdinBuf += chunk.toString();
+  let newline;
+  while ((newline = stdinBuf.indexOf("\n")) !== -1) {
+    const line = stdinBuf.slice(0, newline);
+    stdinBuf = stdinBuf.slice(newline + 1);
+    handle(line);
+  }
+});
+
+async function handle(line) {
   try {
-    const req = JSON.parse(chunk.toString());
+    const req = JSON.parse(line);
     const { id, method, params } = req;
 
     if (method === "initialize") {
@@ -80,8 +91,10 @@ process.stdin.on("data", async chunk => {
     } else {
       respond(id, { error: { code: -32601, message: `Unknown method: ${method}` } });
     }
-  } catch (e) {}
-});
+  } catch (e) {
+    process.stderr.write("mcp-server error: " + e.message + "\n");
+  }
+}
 
 function respond(id, result) {
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
