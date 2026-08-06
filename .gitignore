@@ -2,3 +2,4 @@ node_modules/
 *.xpi
 web-ext-artifacts/
 opencode_bridge.json
+.devbox/

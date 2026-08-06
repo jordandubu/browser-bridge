@@ -1,0 +1,15 @@
+{
+  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.17.5/.schema/devbox.schema.json",
+  "packages": ["nodejs@18"],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "sign": [
+        "npm ci",
+        "npx web-ext sign --source-dir addon --channel listed --api-key $AMO_API_KEY --api-secret $AMO_API_SECRET"
+      ]
+    }
+  }
+}
