@@ -18,7 +18,8 @@
     "gecko": {
       "id": "opencode-bridge@localhost",
       "data_collection_permissions": {
-        "required": ["active_tab_data", "web_content"]
+        "required": ["websiteContent"],
+        "optional": ["technicalAndInteraction"]
       }
     }
   }
