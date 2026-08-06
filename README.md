@@ -1,10 +1,27 @@
 # firefox-bridge
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange)](https://addons.mozilla.org)
+
 Bridge opencode into your browser. Read pages, execute JavaScript, and audit for security flaws — all from your terminal. Purpose-built for bug bounty hunting.
 
-## How it works
+## Why
 
-You browse a site in Firefox. opencode sees the page, runs JS, and spots vulnerabilities in real time. No proxies, no setup, just a browser extension and an MCP server.
+Bug bounty hunters spend half their time switching between browser and tools. firefox-bridge puts opencode directly inside the page. Browse normally, then ask opencode to read the DOM, run JS, or scan for vulnerabilities — no proxies, no manual export, no context switching.
+
+## Architecture
+
+```
+opencode ──▶ MCP server (stdio) ──▶ Unix socket ──▶ host.js (native messaging) ──▶ Firefox addon ──▶ page
+```
+
+The MCP server talks to opencode over stdio. It forwards commands through a Unix socket to the native messaging host, which relays them into Firefox's active tab. Responses flow back the same way.
+
+## Requirements
+
+- [opencode](https://opencode.ai)
+- [Firefox](https://www.mozilla.org/firefox/)
+- [Node.js](https://nodejs.org) ≥ 18
 
 ## Install
 
@@ -15,7 +32,7 @@ npm install
 ./install.sh
 ```
 
-Then add this to `~/.config/opencode/opencode.jsonc`:
+`install.sh` registers the native messaging host with Firefox. Then add this to `~/.config/opencode/opencode.jsonc`:
 
 ```jsonc
 "mcp": {
@@ -27,16 +44,38 @@ Then add this to `~/.config/opencode/opencode.jsonc`:
 }
 ```
 
-Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org).
+Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org). Restart opencode.
 
 ## Tools
 
-| Tool | What it does |
+| Tool | Description |
 |------|-------------|
 | `firefox_read` | Extract all visible text from the active tab |
 | `firefox_html` | Get full page HTML |
 | `firefox_js` | Run arbitrary JavaScript and return the result |
 | `firefox_security` | Collect forms, scripts, cookies, storage, external domains, meta tags for vulnerability analysis |
+
+### Example: security audit
+
+```
+User: audit this page for vulnerabilities
+opencode → firefox_security → returns forms, scripts, cookies, external domains
+opencode: "Found 3 issues:
+  1. Login form submits over HTTP (no TLS)
+  2. No CSP meta tag detected
+  3. Inline script uses innerHTML with user-controlled input"
+```
+
+## CLI
+
+For testing without opencode:
+
+```bash
+node host/bridge.js              # read page text
+node host/bridge.js html         # get page HTML
+node host/bridge.js js "document.title"  # run JS
+node host/bridge.js security     # extract security data
+```
 
 ## Files
 
@@ -44,3 +83,7 @@ Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org).
 |------|------|
 | `addon/` | Firefox extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
+
+## License
+
+MIT
