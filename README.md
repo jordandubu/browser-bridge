@@ -84,6 +84,10 @@ node host/bridge.js security     # extract security data
 | `addon/` | Firefox extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
 
+## Contributing
+
+PRs welcome. Only opencode is supported — if you want Cursor, Claude Code, or another MCP client, add it yourself. The bridge is client-agnostic (stdio MCP), so it should just work. Test with `node host/bridge.js` and `npm run lint`.
+
 ## License
 
 MIT
