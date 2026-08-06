@@ -84,6 +84,17 @@ node host/bridge.js security     # extract security data
 | `addon/` | Firefox extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
 
+## Troubleshooting
+
+**`firefox_read` returns empty or errors**
+Make sure Firefox is running with the addon loaded and a tab is active. The bridge only reads the active tab.
+
+**MCP tools not showing in opencode**
+Restart opencode after adding the MCP config. Verify the path in `args` points to `host/mcp-server.js`.
+
+**Native messaging host not connecting**
+Run `./install.sh` again. Check that `~/.mozilla/native-messaging-hosts/opencode_bridge.json` exists and the `path` field points to `host/host.js`.
+
 ## License
 
 MIT
