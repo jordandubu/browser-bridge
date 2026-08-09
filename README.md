@@ -138,9 +138,24 @@ node host/bridge.js tabs switch 2     # switch to tab 2
 | `addon/` | Browser extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
 
+## Testing
+
+```bash
+devbox run test-tools
+```
+
+Runs 16 tests covering all 15 `browser_*` tools against a local test page. Orchestrates HTTP server, extension (temp profile), and host bridge — then tears down on exit. CI-ready.
+
+For fast dev iteration:
+
+```bash
+npm run dev          # start extension with temp profile
+npm run reload-host  # restart host bridge
+```
+
 ## Contributing
 
-PRs welcome. Only opencode is supported — if you want Cursor, Claude Code, or another MCP client, add it yourself. The bridge is client-agnostic (stdio MCP), so it should just work. Test with `node host/bridge.js` and `npm run lint`.
+PRs welcome. Only opencode is supported — if you want Cursor, Claude Code, or another MCP client, add it yourself. The bridge is client-agnostic (stdio MCP), so it should just work. Test with `devbox run test-tools` and `npm run lint`.
 
 ## License
 
