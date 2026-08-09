@@ -6,6 +6,8 @@
       "echo 'Welcome to devbox!' > /dev/null"
     ],
     "scripts": {
+      "test": "npx web-ext run --source-dir addon --firefox=firefox",
+      "test-tools": "bash test-tools.sh",
       "sign": "npx web-ext sign --source-dir addon --channel listed --api-key $AMO_API_KEY --api-secret $AMO_API_SECRET",
       "sign:local": "devbox run --env-file .env sign"
     }

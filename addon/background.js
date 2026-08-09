@@ -9,6 +9,10 @@ function reply(msg, data) {
   port.postMessage(data);
 }
 
+browser.webNavigation.onBeforeNavigate.addListener(details => {
+  if (details.frameId === 0) delete networkLogs[details.tabId];
+});
+
 browser.webRequest.onBeforeRequest.addListener(
   details => {
     const key = details.tabId;
