@@ -107,11 +107,13 @@ async function main() {
 
   // --- browser_network ---
   await test("browser_network", async () => {
+    await send({ cmd: "js", code: "window.wrappedJSObject.triggerFetch()", _id: 5.5 });
+    await new Promise(r => setTimeout(r, 1000));
     const r = await send({ cmd: "network", _id: 6 });
     assert(!r.error, r.error);
     assert(Array.isArray(r.logs), "logs not array");
-    const hasMain = r.logs.some(l => l.type === "main_frame" && l.url === TEST_URL);
-    assert(hasMain, "missing main_frame request");
+    const hasFetch = r.logs.some(l => l.type === "xmlhttprequest" && l.url.includes("httpbin.org"));
+    assert(hasFetch, "missing fetch request");
   });
 
   // --- browser_security ---

@@ -30,6 +30,20 @@ browser.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] }
 );
 
+browser.webRequest.onBeforeSendHeaders.addListener(
+  details => {
+    const key = details.tabId;
+    if (!networkLogs[key]) networkLogs[key] = [];
+    const entry = networkLogs[key].find(e => e.url === details.url && e.method === details.method && !e.reqHeaders);
+    if (entry) {
+      entry.reqHeaders = {};
+      details.requestHeaders.forEach(h => { entry.reqHeaders[h.name] = h.value; });
+    }
+  },
+  { urls: ["<all_urls>"] },
+  ["requestHeaders"]
+);
+
 browser.webRequest.onHeadersReceived.addListener(
   details => {
     if (!stripHeadersActive) return {};
