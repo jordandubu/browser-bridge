@@ -4,6 +4,8 @@
   "description": "Browser addon that lets opencode read and interact with web pages",
   "scripts": {
     "build": "web-ext build --source-dir addon --overwrite-dest",
+    "dev": "web-ext run --source-dir addon --firefox=firefox",
+    "reload-host": "pkill -f 'host/host.js' 2>/dev/null; sleep 0.5; node host/host.js &",
     "lint": "web-ext lint --source-dir addon"
   },
   "devDependencies": {

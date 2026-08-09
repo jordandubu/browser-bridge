@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src * data:; connect-src *; frame-src *">
+<title>Browser Bridge Test Page</title>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" crossorigin="anonymous"></script>
+<style>
+  body { font-family: monospace; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { border-bottom: 2px solid #333; }
+  section { margin: 2rem 0; padding: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+  section h2 { margin-top: 0; }
+  button { padding: 0.5rem 1rem; margin: 0.25rem; cursor: pointer; }
+  pre { background: #f5f5f5; padding: 0.5rem; overflow-x: auto; font-size: 0.85rem; }
+  .result { margin-top: 0.5rem; padding: 0.5rem; background: #e8f5e9; border-radius: 3px; }
+  .result.error { background: #ffebee; }
+</style>
+</head>
+<body>
+<h1>Browser Bridge — Test Page</h1>
+<p>This page exercises every MCP tool. Open DevTools to see console output.</p>
+
+<section id="console">
+  <h2>browser_console</h2>
+  <button onclick="triggerConsole()">Trigger console.log/error/warn/info/debug</button>
+  <div class="result" id="console-result"></div>
+</section>
+
+<section id="network">
+  <h2>browser_network</h2>
+  <button onclick="triggerFetch()">Trigger fetch()</button>
+  <button onclick="triggerXHR()">Trigger XHR</button>
+  <div class="result" id="network-result"></div>
+</section>
+
+<section id="postmessage">
+  <h2>browser_postmessage</h2>
+  <button onclick="triggerPostMessage()">Send postMessage to self</button>
+  <iframe id="test-iframe" src="about:blank" style="display:none"></iframe>
+  <button onclick="triggerIframePM()">Send postMessage to iframe</button>
+  <div class="result" id="pm-result"></div>
+</section>
+
+<section id="websocket">
+  <h2>browser_websocket</h2>
+  <button onclick="triggerWebSocket()">Open WebSocket (echo server)</button>
+  <div class="result" id="ws-result"></div>
+</section>
+
+<section id="dom-sinks">
+  <h2>browser_dom_sinks</h2>
+  <p>Inline script below contains innerHTML, eval, document.write sinks:</p>
+  <pre>&lt;script&gt;
+  document.getElementById('sink-target').innerHTML = '&lt;b&gt;injected&lt;/b&gt;';
+  eval("console.log('eval called')");
+  setTimeout("console.log('string timeout')", 1);
+&lt;/script&gt;</pre>
+  <div id="sink-target"></div>
+</section>
+
+<section id="storage">
+  <h2>browser_storage</h2>
+  <button onclick="setStorage()">Set cookie + localStorage + sessionStorage</button>
+  <div class="result" id="storage-result"></div>
+</section>
+
+<section id="csp">
+  <h2>browser_csp</h2>
+  <p>This page has a CSP meta tag with unsafe-inline, unsafe-eval, wildcards.</p>
+</section>
+
+<section id="cors">
+  <h2>browser_cors</h2>
+  <p>jQuery loaded from CDN with <code>crossorigin="anonymous"</code>.</p>
+</section>
+
+<section id="event-listeners">
+  <h2>browser_event_listeners</h2>
+  <form onsubmit="return false">
+    <input type="text" name="test-input" placeholder="onchange test" onchange="console.log('changed')">
+    <button type="submit" onclick="console.log('submitted')">Submit (onclick)</button>
+  </form>
+  <a href="#" onclick="console.log('link clicked')">Link with onclick</a>
+</section>
+
+<section id="security">
+  <h2>browser_security</h2>
+  <form action="https://httpbin.org/post" method="post">
+    <input type="text" name="username" autocomplete="username">
+    <input type="password" name="password" autocomplete="current-password">
+    <button type="submit">Login form</button>
+  </form>
+  <iframe src="about:blank" name="test-frame" sandbox="allow-scripts"></iframe>
+</section>
+
+<section id="strip-headers">
+  <h2>browser_strip_headers</h2>
+  <p>Toggle via MCP: <code>browser_strip_headers active:true</code> then reload to see CSP stripped.</p>
+</section>
+
+<script>
+function triggerConsole() {
+  console.log("test-log", { key: "value" });
+  console.error("test-error", new Error("boom"));
+  console.warn("test-warn");
+  console.info("test-info");
+  console.debug("test-debug");
+  document.getElementById("console-result").textContent = "5 console calls fired. Check browser_console tool.";
+}
+
+function triggerFetch() {
+  fetch("https://httpbin.org/get?test=1")
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById("network-result").textContent = "fetch OK: " + d.url;
+      console.log("fetch-done", d.url);
+    })
+    .catch(e => {
+      document.getElementById("network-result").textContent = "fetch FAIL: " + e.message;
+      document.getElementById("network-result").className = "result error";
+    });
+}
+
+function triggerXHR() {
+  var x = new XMLHttpRequest();
+  x.open("POST", "https://httpbin.org/post");
+  x.setRequestHeader("Content-Type", "application/json");
+  x.onload = function() {
+    document.getElementById("network-result").textContent = "XHR OK: " + x.status;
+    console.log("xhr-done", x.status);
+  };
+  x.onerror = function() {
+    document.getElementById("network-result").textContent = "XHR FAIL";
+    document.getElementById("network-result").className = "result error";
+  };
+  x.send(JSON.stringify({ test: true }));
+}
+
+function triggerPostMessage() {
+  window.postMessage({ type: "test", value: 42 }, "*");
+  document.getElementById("pm-result").textContent = "postMessage sent to self. Check browser_postmessage.";
+}
+
+function triggerIframePM() {
+  var iframe = document.getElementById("test-iframe");
+  iframe.src = "about:blank";
+  iframe.onload = function() {
+    iframe.contentWindow.postMessage({ type: "iframe-test", value: "hello" }, "*");
+    document.getElementById("pm-result").textContent = "postMessage sent to iframe. Check browser_postmessage.";
+  };
+}
+
+function triggerWebSocket() {
+  var ws = new WebSocket("wss://echo.websocket.org");
+  ws.onopen = function() {
+    ws.send("hello websocket");
+    document.getElementById("ws-result").textContent = "WebSocket connected, sent 'hello websocket'. Check browser_websocket.";
+  };
+  ws.onmessage = function(e) {
+    document.getElementById("ws-result").textContent += " | Received: " + e.data;
+    ws.close();
+  };
+  ws.onerror = function() {
+    document.getElementById("ws-result").textContent = "WebSocket error (echo server may be down).";
+    document.getElementById("ws-result").className = "result error";
+  };
+}
+
+function setStorage() {
+  document.cookie = "test-cookie=hello-world; SameSite=Lax";
+  localStorage.setItem("test-key", "local-storage-value");
+  sessionStorage.setItem("test-session", "session-storage-value");
+  document.getElementById("storage-result").textContent = "Cookie + localStorage + sessionStorage set. Check browser_storage.";
+}
+
+// DOM sink triggers
+document.getElementById("sink-target").innerHTML = "<b>injected via innerHTML</b>";
+eval("console.log('eval called from inline script')");
+setTimeout("console.log('string setTimeout called')", 1);
+
+// Listen for incoming postMessage
+window.addEventListener("message", function(e) {
+  console.log("postMessage received:", e.origin, e.data);
+});
+</script>
+</body>
+</html>

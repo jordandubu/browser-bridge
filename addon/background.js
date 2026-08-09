@@ -1,5 +1,13 @@
 let port = null;
 const networkLogs = {};
+let stripHeadersActive = false;
+const STRIP_HEADERS = ["content-security-policy", "content-security-policy-report-only",
+  "x-xss-protection", "x-frame-options", "x-content-type-options"];
+
+function reply(msg, data) {
+  if (msg._id != null) data._id = msg._id;
+  port.postMessage(data);
+}
 
 browser.webRequest.onBeforeRequest.addListener(
   details => {
@@ -18,24 +26,36 @@ browser.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] }
 );
 
+browser.webRequest.onHeadersReceived.addListener(
+  details => {
+    if (!stripHeadersActive) return {};
+    const responseHeaders = details.responseHeaders.filter(h =>
+      !STRIP_HEADERS.includes(h.name.toLowerCase())
+    );
+    return { responseHeaders };
+  },
+  { urls: ["<all_urls>"] },
+  ["blocking", "responseHeaders"]
+);
+
 function connect() {
   port = browser.runtime.connectNative("browser_bridge");
   port.onMessage.addListener(msg => {
     if (msg.cmd === "navigate") {
       if (msg.newTab !== false) {
         browser.tabs.create({ url: msg.url }).then(
-          tab => port.postMessage({ url: tab.url, tabId: tab.id, title: tab.title }),
-          err => port.postMessage({ error: err.message })
+          tab => reply(msg, { url: tab.url, tabId: tab.id, title: tab.title }),
+          err => reply(msg, { error: err.message })
         );
       } else {
         browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
           if (!tabs.length) {
-            port.postMessage({ error: "no active tab" });
+            reply(msg, { error: "no active tab" });
             return;
           }
           browser.tabs.update(tabs[0].id, { url: msg.url }).then(
-            tab => port.postMessage({ url: tab.url, tabId: tab.id, title: tab.title }),
-            err => port.postMessage({ error: err.message })
+            tab => reply(msg, { url: tab.url, tabId: tab.id, title: tab.title }),
+            err => reply(msg, { error: err.message })
           );
         });
       }
@@ -44,43 +64,48 @@ function connect() {
     if (msg.cmd === "network") {
       browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
         if (!tabs.length) {
-          port.postMessage({ error: "no active tab" });
+          reply(msg, { error: "no active tab" });
           return;
         }
         const logs = networkLogs[tabs[0].id] || [];
-        port.postMessage({ logs });
+        reply(msg, { logs });
       });
       return;
     }
     if (msg.cmd === "tabs") {
       if (msg.action === "list") {
         browser.tabs.query({ currentWindow: true }).then(tabs => {
-          port.postMessage({ tabs: tabs.map((t, i) => ({ index: i, id: t.id, title: t.title, url: t.url, active: t.active })) });
+          reply(msg, { tabs: tabs.map((t, i) => ({ index: i, id: t.id, title: t.title, url: t.url, active: t.active })) });
         });
       } else if (msg.action === "switch") {
         browser.tabs.query({ currentWindow: true }).then(tabs => {
           if (msg.tabId == null || msg.tabId < 0 || msg.tabId >= tabs.length) {
-            port.postMessage({ error: "invalid tabId" });
+            reply(msg, { error: "invalid tabId" });
             return;
           }
           browser.tabs.update(tabs[msg.tabId].id, { active: true }).then(
-            tab => port.postMessage({ switched: { index: msg.tabId, id: tab.id, title: tab.title, url: tab.url } }),
-            err => port.postMessage({ error: err.message })
+            tab => reply(msg, { switched: { index: msg.tabId, id: tab.id, title: tab.title, url: tab.url } }),
+            err => reply(msg, { error: err.message })
           );
         });
       } else {
-        port.postMessage({ error: "unknown action: " + msg.action });
+        reply(msg, { error: "unknown action: " + msg.action });
       }
+      return;
+    }
+    if (msg.cmd === "strip_headers") {
+      stripHeadersActive = msg.active === true;
+      reply(msg, { stripHeadersActive, stripped: STRIP_HEADERS });
       return;
     }
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (!tabs.length) {
-        port.postMessage({ error: "no active tab" });
+        reply(msg, { error: "no active tab" });
         return;
       }
       browser.tabs.sendMessage(tabs[0].id, msg).then(
-        resp => port.postMessage(resp || { text: "" }),
-        err => port.postMessage({ error: err.message })
+        resp => reply(msg, resp || { text: "" }),
+        err => reply(msg, { error: err.message })
       );
     });
   });
