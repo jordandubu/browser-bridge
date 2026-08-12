@@ -9,6 +9,20 @@ Bridge opencode into your browser. Read pages, execute JavaScript, and audit for
 
 Bug bounty hunters spend half their time switching between browser and tools. browser-bridge puts opencode directly inside the page. Browse normally, then ask opencode to read the DOM, run JS, or scan for vulnerabilities — no proxies, no manual export, no context switching.
 
+## Why not firefox-devtools-mcp
+
+Alternative MCP servers like [Mozilla's firefox-devtools-mcp](https://github.com/mozilla/firefox-devtools-mcp) drive Firefox externally through WebDriver BiDi. That approach works, but it leaves a detectable fingerprint:
+
+- Sets `navigator.webdriver = true` and enables Marionette
+- Alters other browser fingerprint signals
+- Gets blocked by Cloudflare, Akamai, and other bot detection on the very targets you want to test
+
+browser-bridge takes the opposite approach. Instead of driving the browser from outside, it runs **inside** the page as a Firefox addon. No WebDriver flag, no Marionette, no modified fingerprint — sites can't tell you're there. You see the page exactly as a real user does, which means the security findings you get are the ones that actually matter in the wild.
+
+## ZAP integration
+
+browser-bridge works wonderfully alongside [OWASP ZAP](https://www.zaproxy.org/). Run ZAP as your proxy for active/passive scanning, and use browser-bridge to navigate, read responses, and dig into DOM sinks, CORS, and CSP from inside the page. The two complement each other: ZAP finds server-side issues, browser-bridge finds client-side ones — without either tipping off the target.
+
 ## Architecture
 
 ```
