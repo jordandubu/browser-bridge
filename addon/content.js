@@ -23,7 +23,7 @@ function readPageLogs(key) {
 let lastMatches = [];
 
 // Toast history: the page typically reuses ONE toast div and swaps its text
-// (bench4/app.js does exactly that), so a snapshot-based toast tool returns
+// (bench/ui/app.js does exactly that), so a snapshot-based toast tool returns
 // stale text as the "latest". Keep a ring of recent messages; browser_toast
 // reports the newest text seen since the last read plus how long ago it fired.
 let toastHistory = [];
@@ -339,7 +339,7 @@ browser.runtime.onMessage.addListener(async msg => {
           if (form) {
             form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
           } else {
-            // no form: hit the obvious submit/search sibling (bench4's search
+            // no form: hit the obvious submit/search sibling (bench/ui search
             // box is a bare div + 🔍 button), so pressEnter still lands
             const scope = r.el.parentElement || document;
             const btn = scope.querySelector('button[type="submit"], button[type="search"], button:not([type])');

@@ -224,7 +224,7 @@ async function main() {
   // --- browser_toast repeat guard (via MCP server, which owns the guard) ---
   await test("browser_toast repeat guard", async () => {
     const { spawn } = require("child_process");
-    const server = spawn("node", ["host/mcp-server.js"], { stdio: ["pipe", "pipe", "inherit"] });
+    const server = spawn("node", [__dirname + "/../host/mcp-server.js"], { stdio: ["pipe", "pipe", "inherit"] });
     const rpc = (id, method, params) => new Promise((resolve, reject) => {
       const onData = c => {
         const line = c.toString().trim();

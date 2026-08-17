@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Acme Shop</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">Acme Shop</a>
+    <nav>
+      <a href="index.html" data-nav="home">Home</a>
+      <a href="catalog.html" data-nav="catalog">Catalog</a>
+      <a href="account.html" data-nav="account">Account</a>
+    </nav>
+    <div class="mega" id="mega-shop">
+      <button class="mega-btn" id="mega-toggle">Shop ▾</button>
+      <div class="mega-panel" id="mega-panel">
+        <div class="mega-col">
+          <h4>Electronics</h4>
+          <a href="#" data-nav="Phones">Phones</a>
+          <a href="#" data-nav="Laptops">Laptops</a>
+          <a href="#" data-nav="Audio">Audio</a>
+        </div>
+        <div class="mega-col">
+          <h4>Home</h4>
+          <a href="#" data-nav="Kitchen">Kitchen</a>
+          <a href="#" data-nav="Furniture">Furniture</a>
+          <a href="#" data-nav="Decor">Decor</a>
+        </div>
+        <div class="mega-col">
+          <h4>Fashion</h4>
+          <a href="#" data-nav="Men">Men</a>
+          <a href="#" data-nav="Women">Women</a>
+          <a href="#" data-nav="Kids">Kids</a>
+        </div>
+      </div>
+    </div>
+    <div class="search">
+      <input id="search-input" placeholder="Search products…">
+      <button id="search-btn">🔍</button>
+    </div>
+    <div class="topbar-right">
+      <div class="dd" id="dd-account">
+        <button class="dd-btn" id="dd-account-btn">Account ▾</button>
+        <div class="dd-panel">
+          <div class="dd-head">Signed in as guest</div>
+          <a href="#" data-acc="Profile">Profile</a>
+          <a href="#" data-acc="Orders">Orders</a>
+          <a href="#" data-acc="Settings">Settings</a>
+          <a href="#" data-acc="Logout">Logout</a>
+        </div>
+      </div>
+      <a href="cart.html" class="dd-btn">Cart (<span data-cart-count>0</span>)</a>
+    </div>
+  </div>
+</div>
+<div class="wrap">  <h1>Welcome to Acme Shop</h1>
+  <p>Browse our catalog or use the Shop menu.</p>
+  <div class="card">
+    <h2>Featured</h2>
+    <div class="grid">
+      <div class="product"><h3>Wireless Mouse</h3><span class="price">$29</span><br><button class="btn primary" data-add="mouse" data-name="Wireless Mouse" data-price="29">Add to cart</button></div>
+      <div class="product"><h3>Mechanical Keyboard</h3><span class="price">$89</span><br><button class="btn primary" data-add="keyboard" data-name="Mechanical Keyboard" data-price="89">Add to cart</button></div>
+      <div class="product"><h3>27" Monitor</h3><span class="price">$230</span><br><button class="btn primary" data-add="monitor" data-name="Monitor" data-price="230">Add to cart</button></div>
+    </div>
+  </div>
+  <div class="card" id="late-section">
+    <h2>Special Offer</h2>
+    <p id="late-status">Loading…</p>
+  </div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

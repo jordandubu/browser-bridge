@@ -2,7 +2,7 @@
 // semantics, text suggestions). Runs the real source with a stubbed document.
 // Usage: node test-selector-logic.js
 const fs = require("fs");
-const src = fs.readFileSync(__dirname + "/addon/content.js", "utf8");
+const src = fs.readFileSync(__dirname + "/../addon/content.js", "utf8");
 
 const els = [];
 function mk(tag, text, opts = {}) {

@@ -7,7 +7,9 @@
     ],
     "scripts": {
       "test": "npx web-ext run --source-dir addon --firefox=firefox",
-      "test-tools": "bash test-tools.sh",
+      "test-tools": "bash tests/test-tools.sh",
+      "test-ui": "bash bench/ui/run.sh",
+      "bench-ui": "python3 -m http.server 8765 --bind 0.0.0.0 --directory bench/ui",
       "sign": "npx web-ext sign --source-dir addon --channel listed --api-key $AMO_API_KEY --api-secret $AMO_API_SECRET",
       "sign:local": "devbox run --env-file .env sign"
     }

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Acme Shop</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">Acme Shop</a>
+    <nav>
+      <a href="index.html" data-nav="home">Home</a>
+      <a href="catalog.html" data-nav="catalog">Catalog</a>
+      <a href="account.html" data-nav="account">Account</a>
+    </nav>
+    <div class="mega" id="mega-shop">
+      <button class="mega-btn" id="mega-toggle">Shop ▾</button>
+      <div class="mega-panel" id="mega-panel">
+        <div class="mega-col">
+          <h4>Electronics</h4>
+          <a href="#" data-nav="Phones">Phones</a>
+          <a href="#" data-nav="Laptops">Laptops</a>
+          <a href="#" data-nav="Audio">Audio</a>
+        </div>
+        <div class="mega-col">
+          <h4>Home</h4>
+          <a href="#" data-nav="Kitchen">Kitchen</a>
+          <a href="#" data-nav="Furniture">Furniture</a>
+          <a href="#" data-nav="Decor">Decor</a>
+        </div>
+        <div class="mega-col">
+          <h4>Fashion</h4>
+          <a href="#" data-nav="Men">Men</a>
+          <a href="#" data-nav="Women">Women</a>
+          <a href="#" data-nav="Kids">Kids</a>
+        </div>
+      </div>
+    </div>
+    <div class="search">
+      <input id="search-input" placeholder="Search products…">
+      <button id="search-btn">🔍</button>
+    </div>
+    <div class="topbar-right">
+      <div class="dd" id="dd-account">
+        <button class="dd-btn" id="dd-account-btn">Account ▾</button>
+        <div class="dd-panel">
+          <div class="dd-head">Signed in as guest</div>
+          <a href="#" data-acc="Profile">Profile</a>
+          <a href="#" data-acc="Orders">Orders</a>
+          <a href="#" data-acc="Settings">Settings</a>
+          <a href="#" data-acc="Logout">Logout</a>
+        </div>
+      </div>
+      <a href="cart.html" class="dd-btn">Cart (<span data-cart-count>0</span>)</a>
+    </div>
+  </div>
+</div>
+<div class="wrap">  <nav class="crumb"><a href="index.html">Home</a> › <a href="cart.html">Cart</a> › Checkout</nav>
+  <h1>Checkout</h1>
+  <div class="stepper">
+    <span class="step active" data-step="1">1. Shipping</span>
+    <span class="step" data-step="2">2. Payment</span>
+    <span class="step" data-step="3">3. Review</span>
+  </div>
+  <div class="card">
+    <div class="step-form active" id="step-form-1">
+      <label>Address</label>
+      <input id="ship-address" placeholder="Street">
+      <label>City</label>
+      <input id="ship-city" placeholder="City">
+    </div>
+    <div class="step-form" id="step-form-2">
+      <label>Card number</label>
+      <input id="pay-card" placeholder="4242 4242 4242 4242">
+      <label>Expiry</label>
+      <input id="pay-exp" placeholder="MM/YY">
+    </div>
+    <div class="step-form" id="step-form-3">
+      <p>Review your order and confirm.</p>
+      <button class="btn primary" id="place-order">Place Order</button>
+      <p class="res" id="order-result"></p>
+    </div>
+    <button class="btn" id="step-next">Next</button>
+  </div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

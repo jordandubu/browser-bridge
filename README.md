@@ -151,14 +151,29 @@ node host/bridge.js tabs switch 2     # switch to tab 2
 |------|------|
 | `addon/` | Browser extension (manifest, background, content scripts) |
 | `host/` | Native messaging host, MCP server, CLI client |
+| `tests/` | Tool test suite + selector logic smoke test |
+| `bench/ui/` | Multi-page shop (Acme Shop) used for UI navigation testing with judge/grade scripts |
 
 ## Testing
+
+### Tool tests — `tests/`
 
 ```bash
 devbox run test-tools
 ```
 
 Runs 16 tests covering all 15 `browser_*` tools against a local test page. Orchestrates HTTP server, extension (temp profile), and host bridge — then tears down on exit. CI-ready.
+
+### UI navigation bench — `bench/ui/`
+
+Multi-page shop (catalog, cart, checkout, account) for exercising the navigation tools against realistic UI (menus, toasts, modals, tabs, pagination, late-injected elements).
+
+```bash
+devbox run bench-ui      # serve the shop on :8765
+devbox run test-ui       # judge: run the shop through the MCP socket and grade each task
+```
+
+`bench/ui/judge.js` verifies the shop's interactions against a running bridge; `bench/ui/grade.js` scores a previously-run AI session from its evidence log. Regenerate the pages after editing shared markup with `node bench/ui/build.js`.
 
 For fast dev iteration:
 
