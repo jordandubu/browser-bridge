@@ -20,24 +20,453 @@ function readPageLogs(key) {
   }
 }
 
-browser.runtime.onMessage.addListener(msg => {
+let lastMatches = [];
+
+// Toast history: the page typically reuses ONE toast div and swaps its text
+// (bench4/app.js does exactly that), so a snapshot-based toast tool returns
+// stale text as the "latest". Keep a ring of recent messages; browser_toast
+// reports the newest text seen since the last read plus how long ago it fired.
+let toastHistory = [];
+let toastSeenAt = 0;
+function trackToast() {
+  const el = document.querySelector("#toast, [class*=toast]");
+  if (!el) return;
+  const text = (el.textContent || "").trim();
+  const hidden = (el.classList && el.classList.contains("show") === false && el.classList.length > 0) ||
+    getComputedStyle(el).display === "none" || getComputedStyle(el).visibility === "hidden";
+  const last = toastHistory[toastHistory.length - 1];
+  const sameText = last && last.text === text;
+  if (sameText) {
+    last.ts = Date.now();
+  } else if (text) {
+    toastHistory.push({ text, ts: Date.now(), visible: !hidden });
+    if (toastHistory.length > 10) toastHistory.shift();
+  }
+  if (toastHistory.length) toastHistory[toastHistory.length - 1].visible = !hidden;
+}
+new MutationObserver(() => trackToast()).observe(document.documentElement, {
+  childList: true, subtree: true, characterData: true, attributes: true
+});
+trackToast();
+
+function describe(el) {
+  let parent = null;
+  for (let p = el.parentElement, depth = 0; p && depth < 3; p = p.parentElement, depth++) {
+    if (p.id || (typeof p.className === "string" && p.className.trim())) {
+      parent = (p.id ? "#" + p.id : "") + (typeof p.className === "string" && p.className.trim() ? "." + p.className.trim().split(/\s+/).join(".") : "");
+      break;
+    }
+  }
+  return {
+    tag: el.tagName,
+    id: el.id || null,
+    class: typeof el.className === "string" ? el.className : null,
+    name: el.getAttribute && el.getAttribute("name") || null,
+    text: (el.textContent || "").trim().slice(0, 80),
+    parent
+  };
+}
+
+// Parse a selector into { type, value, index }.
+// Supported forms:
+//   "text=Shop"        exact text match (leaf-most element)
+//   "text*=keyboard"   substring text match
+//   "role=button"      ARIA role
+//   "label=Search"     <label for> text
+//   "#id", ".class", "tag", "[attr]", any CSS selector
+//   optional trailing "|index=N" to disambiguate multi-matches
+//   pseudo ":has-text(X)" / ":contains(X)" / ":text(X)" are translated to
+//   text/text* so agents can use them like in Playwright.
+function parseSelector(sel) {
+  let s = (sel || "").trim();
+  if (!s) return null;
+  let index = 0;
+  let explicitIndex = false;
+  const idxMatch = s.match(/\|index=(\d+)\s*$/);
+  if (idxMatch) {
+    index = parseInt(idxMatch[1], 10);
+    explicitIndex = true;
+    s = s.slice(0, idxMatch.index).trim();
+  }
+  let type = "css", value = s;
+  const m = s.match(/^(text\*?|role|label)=(.+)$/i);
+  if (m) {
+    type = m[1].toLowerCase();
+    value = m[2].trim();
+  } else {
+    // elementPrefix:has-text("...") — strip "span.chip:" etc. and keep the text.
+    const p = s.match(/^(?:[^\s:]+:)?(?:has-text|contains|text)\(\s*([\s\S]*?)\s*\)\s*$/i);
+    if (p) {
+      type = "text*";
+      value = p[1].replace(/^['"]|['"]$/g, "");
+    }
+  }
+  return { type, value, index, explicitIndex };
+}
+
+function matchByType(type, value) {
+  if (type === "text") {
+    // leaf-most elements whose trimmed text equals value
+    return Array.from(document.querySelectorAll("body *")).filter(el =>
+      el.children.length === 0 && el.textContent.trim() === value
+    );
+  }
+  if (type === "text*") {
+    return Array.from(document.querySelectorAll("body *")).filter(el =>
+      el.children.length === 0 && el.textContent.includes(value)
+    );
+  }
+  if (type === "role") {
+    return Array.from(document.querySelectorAll("[role='" + value + "']"));
+  }
+  if (type === "label") {
+    const labels = Array.from(document.querySelectorAll("label")).filter(l =>
+      l.textContent.trim() === value
+    );
+    const els = [];
+    labels.forEach(l => {
+      const forId = l.getAttribute("for");
+      if (forId) {
+        const t = document.getElementById(forId);
+        if (t) els.push(t);
+      } else {
+        const c = l.querySelector("input, select, textarea");
+        if (c) els.push(c);
+      }
+    });
+    return els;
+  }
+  if (type === "css") {
+    // [data-page=2] is valid HTML but querySelectorAll rejects unquoted attr
+    // values — auto-quote and retry before failing.
+    let sel = value;
+    if (!/['"]/.test(sel)) {
+      sel = sel.replace(/\[([\w-]+)=([^'"\]\s][^'"\]]*)\]/g, '[$1="$2"]');
+    }
+    try {
+      return Array.from(document.querySelectorAll(sel));
+    } catch (e) {
+      if (sel !== value) return Array.from(document.querySelectorAll(value));
+      throw e;
+    }
+  }
+  return Array.from(document.querySelectorAll(value));
+}
+
+// Text fallback: exact text match fails, so suggest the closest real options.
+// Returns up to 5 candidate descriptions so the error message is actionable.
+function textSuggestions(value, type) {
+  const exact = type === "text";
+  const els = Array.from(document.querySelectorAll("body *")).filter(el => {
+    if (el.children.length > 0) return false;
+    const t = el.textContent.trim();
+    if (!t) return false;
+    return exact ? (t.includes(value) || value.includes(t)) : t.includes(value);
+  });
+  const uniq = [];
+  const seen = new Set();
+  for (const el of els) {
+    const d = describe(el);
+    const key = el.tagName + ":" + d.text;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniq.push(d);
+    if (uniq.length >= 5) break;
+  }
+  return uniq;
+}
+
+// Returns { el, matched, ambiguous } or { error }.
+// requireUnique: mutating actions (click/type/act) pass true so an ambiguous
+// selector errors instead of silently acting on the first match.
+function resolveElement(selector, requireUnique) {
+  const parsed = parseSelector(selector);
+  if (!parsed) return { error: "empty selector" };
+  let candidates;
+  try {
+    candidates = matchByType(parsed.type, parsed.value);
+  } catch (e) {
+    return { error: "invalid selector: " + e.message };
+  }
+  if (!candidates.length) {
+    lastMatches = [];
+    const suggest = parsed.type === "text" || parsed.type === "text*"
+      ? textSuggestions(parsed.value, parsed.type)
+      : [];
+    if (suggest.length) {
+      return { error: "no exact match for: " + selector + " — did you mean: " + suggest.map(d => d.tag + ' "' + d.text + '"').join(", "), suggestions: suggest };
+    }
+    return { error: "no element matched selector: " + selector };
+  }
+  const visible = candidates.filter(el => el.offsetWidth || el.offsetHeight);
+  const pool = visible.length ? visible : candidates;
+  lastMatches = pool.map(describe);
+  if (parsed.index >= pool.length) {
+    return { error: "index " + parsed.index + " out of range (matched " + pool.length + ")", matched: numbered(lastMatches) };
+  }
+  // Ambiguity resolution: exact `|index=N` or an unambiguous single match both
+  // count as resolved. Anything else (substring text matching many leaves,
+  // CSS matching many nodes) errors instead of silently acting on the first.
+  const resolved = parsed.explicitIndex || pool.length === 1;
+  if (requireUnique && pool.length > 1 && !resolved) {
+    const list = numbered(lastMatches).map(d => "index=" + d.index + ": " + d.tag + (d.parent ? " (in " + d.parent + ")" : "") + ' "' + d.text + '"').join("\n");
+    return { error: "ambiguous selector: " + selector + " matched " + pool.length + " elements, append |index=N to pick one\n" + list, matched: numbered(lastMatches) };
+  }
+  const el = pool[parsed.index];
+  return { el, matched: numbered(lastMatches), ambiguous: !resolved };
+}
+
+function numbered(els) {
+  return els.map((d, i) => Object.assign({ index: i, hint: "|index=" + i }, d));
+}
+
+// Wait until a selector exists/visible, up to timeout ms. MutationObserver
+// based — no busy-wait.
+function waitForSelector(selector, timeout) {
+  return new Promise(resolve => {
+    const start = Date.now();
+    let done = false;
+    const finish = r => { if (!done) { done = true; resolve(r); } };
+    const check = () => {
+      const r = resolveElement(selector);
+      if (!r.error) { finish(r); return true; }
+      if (Date.now() - start >= timeout) { finish({ error: "timeout waiting for: " + selector, matched: lastMatches }); return true; }
+      return false;
+    };
+    if (check()) return;
+    const mo = new MutationObserver(() => { if (check()) mo.disconnect(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+    setTimeout(() => { mo.disconnect(); check(); }, timeout);
+  });
+}
+
+browser.runtime.onMessage.addListener(async msg => {
   switch (msg.cmd) {
+    case "ping":
+      return Promise.resolve({ pong: true });
     case "read": {
-      const clone = document.body.cloneNode(true);
-      const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+      let root = document.body;
+      if (msg.selector) {
+        const r = resolveElement(msg.selector);
+        if (r.error) return Promise.resolve({ error: r.error, matched: r.matched || lastMatches });
+        root = r.el;
+      }
+      // walk the LIVE DOM (computed styles only work on attached nodes);
+      // clone only for text extraction.
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       const parts = [];
       let node;
       while ((node = walker.nextNode())) {
         const t = node.textContent.trim();
-        if (t) parts.push(t);
+        if (!t) continue;
+        if (msg.visibleOnly) {
+          let el = node.parentElement;
+          let hidden = false;
+          while (el && el !== document.body) {
+            const cs = getComputedStyle(el);
+            if (cs.display === "none" || cs.visibility === "hidden") { hidden = true; break; }
+            el = el.parentElement;
+          }
+          if (hidden) continue;
+        }
+        parts.push(t);
       }
-      return Promise.resolve({ text: parts.join("\n"), title: document.title, url: location.href });
+      const text = parts.join("\n");
+      const truncated = msg.maxChars && text.length > msg.maxChars;
+      return Promise.resolve({
+        text: truncated ? text.slice(0, msg.maxChars) : text,
+        truncated,
+        totalChars: text.length,
+        title: document.title,
+        url: location.href
+      });
     }
-    case "html":
-      return Promise.resolve({ html: document.documentElement.outerHTML, title: document.title, url: location.href });
+    case "html": {
+      const html = document.documentElement.outerHTML;
+      const truncated = msg.maxChars && html.length > msg.maxChars;
+      return Promise.resolve({
+        html: truncated ? html.slice(0, msg.maxChars) : html,
+        truncated,
+        totalChars: html.length,
+        title: document.title,
+        url: location.href
+      });
+    }    case "click": {
+      try {
+        const r = resolveElement(msg.selector, true);
+        if (r.error) return Promise.resolve({ error: r.error, matched: r.matched || lastMatches });
+        if (r.el.tagName === "OPTION") {
+          // Clicking an <option> fires no change on the parent <select> in
+          // headless/automation contexts — set value + dispatch like a real
+          // user pick would.
+          const sel = r.el.closest("select");
+          if (sel) {
+            sel.value = r.el.value;
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+            return Promise.resolve({ clicked: describe(r.el), changedSelect: true, matched: r.matched, ambiguous: r.ambiguous });
+          }
+        }
+        r.el.scrollIntoView({ block: "center" });
+        r.el.click();
+        return Promise.resolve({ clicked: describe(r.el), matched: r.matched, ambiguous: r.ambiguous });
+      } catch (e) { return Promise.resolve({ error: e.message }); }
+    }
+    case "type": {
+      try {
+        const r = resolveElement(msg.selector, true);
+        if (r.error) return Promise.resolve({ error: r.error, matched: r.matched || lastMatches });
+        r.el.focus();
+        r.el.value = msg.value;
+        r.el.dispatchEvent(new Event("input", { bubbles: true }));
+        r.el.dispatchEvent(new Event("change", { bubbles: true }));
+        // verify the value actually landed on the real field (React etc. may
+        // need a native setter to register the change).
+        let landed = r.el.value === msg.value || r.el.defaultValue === msg.value;
+        if (!landed) {
+          // native setter fallback for framework-controlled inputs
+          const proto = r.el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+          setter.call(r.el, msg.value);
+          r.el.dispatchEvent(new Event("input", { bubbles: true }));
+          r.el.dispatchEvent(new Event("change", { bubbles: true }));
+          landed = r.el.value === msg.value;
+        }
+        if (msg.pressEnter) {
+          ["keydown", "keypress", "keyup"].forEach(k =>
+            r.el.dispatchEvent(new KeyboardEvent(k, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }))
+          );
+          const form = r.el.closest("form");
+          if (form) {
+            form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+          } else {
+            // no form: hit the obvious submit/search sibling (bench4's search
+            // box is a bare div + 🔍 button), so pressEnter still lands
+            const scope = r.el.parentElement || document;
+            const btn = scope.querySelector('button[type="submit"], button[type="search"], button:not([type])');
+            if (btn) btn.click();
+          }
+        }
+        return Promise.resolve({ typed: true, value: r.el.value || "", landed, matched: r.matched, ambiguous: r.ambiguous });
+      } catch (e) { return Promise.resolve({ error: e.message }); }
+    }
+    case "act": {
+      // Compound action: perform action, optionally wait for a selector, then
+      // return post-state (toast, cart count, matched) in one round trip.
+      const out = { action: msg.action, selector: msg.selector };
+      try {
+        if (msg.action === "click" || msg.action === "type") {
+          const r = resolveElement(msg.selector, true);
+          if (r.error) return Promise.resolve({ error: r.error, matched: r.matched || lastMatches });
+          out.matched = r.matched;
+          out.ambiguous = r.ambiguous;
+          if (msg.action === "click") {
+            const optSel = r.el.tagName === "OPTION" && r.el.closest("select");
+            if (optSel) {
+              optSel.value = r.el.value;
+              optSel.dispatchEvent(new Event("change", { bubbles: true }));
+              out.clicked = describe(r.el);
+              out.changedSelect = true;
+            } else {
+              r.el.scrollIntoView({ block: "center" });
+              r.el.click();
+              out.clicked = describe(r.el);
+            }
+          } else {
+            r.el.focus();
+            r.el.value = msg.value || "";
+            r.el.dispatchEvent(new Event("input", { bubbles: true }));
+            r.el.dispatchEvent(new Event("change", { bubbles: true }));
+            out.landed = r.el.value === (msg.value || "") || r.el.defaultValue === (msg.value || "");
+            if (!out.landed) {
+              const proto = r.el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+              const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+              setter.call(r.el, msg.value || "");
+              r.el.dispatchEvent(new Event("input", { bubbles: true }));
+              r.el.dispatchEvent(new Event("change", { bubbles: true }));
+              out.landed = r.el.value === (msg.value || "");
+            }
+            if (msg.pressEnter) {
+              ["keydown", "keypress", "keyup"].forEach(k =>
+                r.el.dispatchEvent(new KeyboardEvent(k, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }))
+              );
+              const form = r.el.closest("form");
+              if (form) {
+                form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+              } else {
+                const scope = r.el.parentElement || document;
+                const btn = scope.querySelector('button[type="submit"], button[type="search"], button:not([type])');
+                if (btn) btn.click();
+              }
+            }
+            out.typed = true;
+          }
+        } else if (msg.action === "wait") {
+          const found = await waitForSelector(msg.selector, msg.timeout || 5000);
+          if (found.error) return Promise.resolve({ error: found.error, matched: lastMatches });
+          out.matched = found.matched;
+          out.ambiguous = found.ambiguous;
+          out.waited = true;
+        } else {
+          return Promise.resolve({ error: "unknown action: " + msg.action });
+        }
+        // verify: read a selector's text (e.g. toast) after the action
+        if (msg.verify) {
+          const v = resolveElement(msg.verify);
+          out.verify = v.error ? null : (v.el.textContent || "").trim();
+        }
+        // generic post-state: toast + cart count if present
+        const toast = document.querySelector("#toast, [class*=toast]");
+        if (toast) out.toast = (toast.textContent || "").trim();
+        const cart = document.querySelector("[data-cart-count], .cart-count, [class*=cart-count]");
+        if (cart) out.cartCount = (cart.textContent || "").trim();
+        return Promise.resolve(out);
+      } catch (e) { return Promise.resolve({ error: e.message }); }
+    }
+    case "wait": {
+      const found = await waitForSelector(msg.selector, msg.timeout || 5000);
+      if (found.error) return Promise.resolve({ error: found.error, matched: lastMatches });
+      return Promise.resolve({ waited: true, matched: found.matched, ambiguous: found.ambiguous, text: (found.el.textContent || "").trim().slice(0, 200) });
+    }
+    case "toast":
+      return Promise.resolve({ toast: (() => {
+        const t = document.querySelector("#toast, [class*=toast]");
+        // A toast div is present. If it currently shows text (visible or not),
+        // report it directly with a faded marker when hidden.
+        if (t) {
+          const text = (t.textContent || "").trim();
+          const cs = getComputedStyle(t);
+          const visible = cs.display !== "none" && cs.visibility !== "hidden" &&
+            !(t.classList && t.classList.contains("show") === false && t.classList.length > 0);
+          if (text) {
+            // record before reading so the same text can't re-announce forever
+            trackToast();
+            const hist = toastHistory[toastHistory.length - 1];
+            const age = hist && hist.text === text ? Date.now() - hist.ts : 0;
+            return (visible ? text : text + " (faded)") + (age > 0 ? " (" + Math.round(age / 1000) + "s ago)" : "");
+          }
+        }
+        // No toast div or it's empty: report toasts seen since the last read,
+        // newest first, marked faded (they're off-screen now). If none unseen,
+        // fall back to the newest ever seen so history stays readable.
+        const now = Date.now();
+        const unseen = toastHistory.filter(h => h.ts > toastSeenAt).reverse();
+        const pick = unseen.length ? unseen[0] : toastHistory[toastHistory.length - 1];
+        toastSeenAt = now;
+        return pick ? pick.text + " (faded)" : null;
+      })() });
     case "js":
       try {
-        const result = eval(msg.code);
+        // expose page globals as `page` so the model can call page functions,
+        // not just poke DOM (page = window.wrappedJSObject).
+        // Strategy: inner eval returns the last expression value (so `1+1` and
+        // statement sequences work); if the code uses explicit `return`, inner
+        // eval throws and we fall back to a function wrapper.
+        let result;
+        try {
+          result = eval("(function() { var page = window.wrappedJSObject; return eval(" + JSON.stringify(msg.code) + "); })()");
+        } catch (e) {
+          result = eval("(function() { var page = window.wrappedJSObject;\n" + msg.code + "\n})()");
+        }
         if (result instanceof Promise) {
           return result.then(r => ({ result: r })).catch(e => ({ error: e.message }));
         }
@@ -47,8 +476,6 @@ browser.runtime.onMessage.addListener(msg => {
       }
     case "console":
       return readPageLogs("__bridge_console_logs");
-    case "network":
-      return readPageLogs("__bridge_network_logs");
     case "postmessage":
       return readPageLogs("__bridge_postmessage_logs");
     case "websocket":
@@ -86,6 +513,21 @@ browser.runtime.onMessage.addListener(msg => {
         });
       });
       return Promise.resolve({ sinks, url: location.href });
+    }
+    case "clear_storage": {
+      const result = { url: location.href };
+      // Reset page-level in-memory state first (page JS may cache a copy of
+      // localStorage in a module-scoped var, e.g. `cart`, so clearing storage
+      // alone leaves stale state that gets written back on the next action).
+      try {
+        const page = window.wrappedJSObject;
+        if (page && page.__cart && typeof page.__cart.clear === "function") page.__cart.clear();
+        if (page && page.__evidence && typeof page.__evidence.clear === "function") page.__evidence.clear();
+        result.appReset = true;
+      } catch (e) { result.appResetError = e.message; }
+      try { localStorage.clear(); result.localStorageCleared = true; } catch (e) { result.localStorageError = e.message; }
+      try { sessionStorage.clear(); result.sessionStorageCleared = true; } catch (e) { result.sessionStorageError = e.message; }
+      return Promise.resolve(result);
     }
     case "storage": {
       const result = { url: location.href };

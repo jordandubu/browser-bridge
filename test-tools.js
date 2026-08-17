@@ -221,6 +221,34 @@ async function main() {
     await send({ cmd: "tabs", action: "switch", tabId: 0, _id: 21 });
   });
 
+  // --- browser_toast repeat guard (via MCP server, which owns the guard) ---
+  await test("browser_toast repeat guard", async () => {
+    const { spawn } = require("child_process");
+    const server = spawn("node", ["host/mcp-server.js"], { stdio: ["pipe", "pipe", "inherit"] });
+    const rpc = (id, method, params) => new Promise((resolve, reject) => {
+      const onData = c => {
+        const line = c.toString().trim();
+        if (!line) return;
+        try {
+          const m = JSON.parse(line);
+          if (m.id === id) { server.stdout.off("data", onData); resolve(m); }
+        } catch (e) {}
+      };
+      server.stdout.on("data", onData);
+      server.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+    });
+    try {
+      await rpc(1, "initialize", {});
+      const r1 = await rpc(2, "tools/call", { name: "browser_toast", arguments: {} });
+      assert(!r1.result.isError, "first toast read failed: " + JSON.stringify(r1));
+      const r2 = await rpc(3, "tools/call", { name: "browser_toast", arguments: {} });
+      const text = r2.result.content[0].text;
+      assert(r2.result.isError && text.includes("repeated"), "expected repeat-guard error, got: " + text);
+    } finally {
+      server.kill();
+    }
+  });
+
   console.log(`\n${passed} passed, ${failed} failed, ${passed + failed} total`);
   process.exit(failed > 0 ? 1 : 0);
 }

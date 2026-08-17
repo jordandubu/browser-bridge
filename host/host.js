@@ -2,7 +2,7 @@
 const net = require("net");
 const fs = require("fs");
 
-const SOCK = "/tmp/browser-bridge.sock";
+const SOCK = process.env.BRIDGE_SOCK || "/tmp/browser-bridge.sock";
 
 fs.unlink(SOCK, () => {});
 
@@ -21,7 +21,7 @@ const server = net.createServer(sock => {
         const msg = JSON.parse(line);
         const resp = JSON.stringify(msg);
         const len = Buffer.alloc(4);
-        len.writeUInt32LE(resp.length, 0);
+        len.writeUInt32LE(Buffer.byteLength(resp, "utf-8"), 0);
         process.stdout.write(Buffer.concat([len, Buffer.from(resp, "utf-8")]));
       } catch (e) {}
     }
