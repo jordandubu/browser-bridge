@@ -1,6 +1,7 @@
 node_modules/
 *.xpi
 web-ext-artifacts/
+.amo-upload-uuid
 browser_bridge.json
 .devbox/
 .env
