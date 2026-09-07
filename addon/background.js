@@ -13,15 +13,18 @@ function waitTabLoaded(tabId, url, timeout = 10000) {
   const start = Date.now();
   return new Promise(resolve => {
     const check = () => {
-      browser.tabs.get(tabId).then(tab => {
-        // race guard: the tab may still report the PREVIOUS page's "complete"
-        // status right after tabs.update — also require the URL to match.
-        const urlOk = !url || (tab.url || "").split("#")[0] === url.split("#")[0];
-        if ((tab.status === "complete" && urlOk) || Date.now() - start > timeout) {
-          resolve(tab);
-        } else {
-          setTimeout(check, 100);
-        }
+    browser.tabs.get(tabId).then(tab => {
+    // race guard: the tab may still report the PREVIOUS page's "complete"
+    // status right after tabs.update — also require a URL match. Compare
+    // origin+path only: engines append/normalize query params (&ia=web,
+    // redirects), and byte-exact matching forced the full 10s fallback.
+    const norm = u => { try { return new URL(u).origin + new URL(u).pathname; } catch (e) { return u || ""; } };
+    const urlOk = !url || norm(tab.url) === norm(url);
+    if ((tab.status === "complete" && urlOk) || Date.now() - start > timeout) {
+      resolve(tab);
+    } else {
+      setTimeout(check, 100);
+    }
       }, () => resolve(null));
     };
     check();

@@ -25,11 +25,25 @@ function connect() {
       } catch (e) {}
     }
   });
-  sock.on("error", () => { sock = null; });
-  sock.on("close", () => { sock = null; });
+  sock.on("error", () => {});
+  sock.on("close", () => {
+    // A lost connection means pending requests will never be answered on
+    // this socket; fail them now so send() retries on a fresh one instead
+    // of waiting out the full timeout.
+    sock = null;
+    const waiting = Object.keys(pending);
+    for (const id of waiting) {
+      pending[id](null);
+      delete pending[id];
+    }
+  });
 }
 
-const SEND_TIMEOUT = 30000;
+const SEND_TIMEOUT = 8000;
+// navigate waits for tab load + content-script ready inside the addon; until
+// the addon is updated, URLs that get query-normalized burn a 10s fallback
+// there, so the navigate window must exceed it or the retry double-fires.
+const NAVIGATE_TIMEOUT = 15000;
 const SEND_RETRIES = 2;
 // Mutating actions whose response may be lost when the page handles the click
 // but the socket/connection dies before the reply arrives. For these, a
@@ -44,6 +58,7 @@ function send(msg) {
     const attempt = (tryNo) => {
       if (!sock) connect();
       const id = nextId++;
+      const window = msg.cmd === "navigate" ? NAVIGATE_TIMEOUT : SEND_TIMEOUT;
       const timer = setTimeout(() => {
         delete pending[id];
         try { sock && sock.destroy(); } catch (e) {}
@@ -54,9 +69,23 @@ function send(msg) {
           return;
         }
         reject(new Error("timeout"));
-      }, SEND_TIMEOUT);
+      }, window);
       const m = { ...msg, _id: id };
-      pending[id] = (resp) => { clearTimeout(timer); resolve(resp); };
+      pending[id] = (resp) => {
+        clearTimeout(timer);
+        if (resp === null) {
+          // Socket died before the reply arrived — retry on a fresh one.
+          sock = null;
+          if (tryNo < SEND_RETRIES) return attempt(tryNo + 1);
+          if (MUTATING_CMDS.has(msg.cmd)) {
+            resolve({ error: "connection lost (retried " + SEND_RETRIES + "x). The action may still have executed — verify page state before retrying.", mayHaveExecuted: true });
+            return;
+          }
+          reject(new Error("connection lost"));
+          return;
+        }
+        resolve(resp);
+      };
       try { sock.write(JSON.stringify(m) + "\n"); } catch (e) { clearTimeout(timer); delete pending[id]; sock = null; if (tryNo < SEND_RETRIES) return attempt(tryNo + 1); if (MUTATING_CMDS.has(msg.cmd)) { resolve({ error: "connection error (retried " + SEND_RETRIES + "x). The action may still have executed — verify page state before retrying.", mayHaveExecuted: true }); return; } reject(e); }
     };
     attempt(0);
@@ -319,8 +348,9 @@ async function handle(line) {
           result = await send({ cmd: "strip_headers", active: args.active });
         } else if (name === "browser_event_listeners") {
           result = await send({ cmd: "event_listeners" });
+        } else {
+          result = { error: "unknown tool: " + name };
         }
-        respond(id, { content: [{ type: "text", text: JSON.stringify(result) }] });
       } catch (e) {
         respond(id, { content: [{ type: "text", text: JSON.stringify({ error: e.message }) }], isError: true });
       }
