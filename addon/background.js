@@ -10,24 +10,33 @@ function reply(msg, data) {
 }
 
 function waitTabLoaded(tabId, url, timeout = 10000) {
+  // Event-driven: resolve on the FIRST status:"complete" for this tab after
+  // the navigation starts. The old code polled tabs.get and required a URL
+  // match; on redirect/challenge sites the normalized URL never matched and
+  // every navigate burned the full 10s fallback. onUpdated fires exactly once
+  // per load transition, so it is both faster and race-free. A tab that is
+  // ALREADY complete (same-URL re-navigate that resolves instantly, or a tab
+  // that finished while we were setting up) still resolves immediately.
   const start = Date.now();
   return new Promise(resolve => {
-    const check = () => {
-    browser.tabs.get(tabId).then(tab => {
-    // race guard: the tab may still report the PREVIOUS page's "complete"
-    // status right after tabs.update — also require a URL match. Compare
-    // origin+path only: engines append/normalize query params (&ia=web,
-    // redirects), and byte-exact matching forced the full 10s fallback.
-    const norm = u => { try { return new URL(u).origin + new URL(u).pathname; } catch (e) { return u || ""; } };
-    const urlOk = !url || norm(tab.url) === norm(url);
-    if ((tab.status === "complete" && urlOk) || Date.now() - start > timeout) {
+    let settled = false;
+    const done = tab => {
+      if (settled) return;
+      settled = true;
+      browser.tabs.onUpdated.removeListener(onUpdated);
+      clearTimeout(timer);
       resolve(tab);
-    } else {
-      setTimeout(check, 100);
-    }
-      }, () => resolve(null));
     };
-    check();
+    const onUpdated = (updatedTabId, changeInfo, tab) => {
+      if (updatedTabId !== tabId || changeInfo.status !== "complete") return;
+      done(tab);
+    };
+    browser.tabs.onUpdated.addListener(onUpdated);
+    const timer = setTimeout(() => {
+      browser.tabs.get(tabId).then(done, () => { settled = true; browser.tabs.onUpdated.removeListener(onUpdated); resolve(null); });
+    }, timeout);
+    // If the tab is already complete right now, resolve without waiting.
+    browser.tabs.get(tabId).then(tab => { if (tab.status === "complete") done(tab); }, () => {});
   });
 }
 

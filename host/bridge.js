@@ -5,6 +5,7 @@ const SOCK = process.env.BRIDGE_SOCK || "/tmp/browser-bridge.sock";
 const sock = net.createConnection(SOCK);
 
 let buf = "";
+let printed = false;
 sock.on("data", chunk => {
   buf += chunk;
   const lines = buf.split("\n");
@@ -13,7 +14,14 @@ sock.on("data", chunk => {
     if (!line.trim()) continue;
     try {
       const msg = JSON.parse(line);
+      // The host echoes probe replies too; the first real response is the
+      // answer to our command. Print it and exit immediately — the old fixed
+      // 5s setTimeout made every CLI call take 5s even for 5ms responses.
+      if (printed) continue;
       console.log(JSON.stringify(msg));
+      printed = true;
+      sock.destroy();
+      process.exit(0);
     } catch (e) {}
   }
 });
@@ -38,4 +46,6 @@ if (cmd === "js") {
 
 sock.write(JSON.stringify(msg) + "\n");
 
-setTimeout(() => { sock.end(); process.exit(0); }, 5000);
+// Backstop only: a response normally arrives in milliseconds and the data
+// handler exits. navigate waits for page load inside the addon, so allow it.
+setTimeout(() => { sock.end(); process.exit(0); }, cmd === "navigate" ? 30000 : 10000);

@@ -40,9 +40,10 @@ function connect() {
 }
 
 const SEND_TIMEOUT = 8000;
-// navigate waits for tab load + content-script ready inside the addon; until
-// the addon is updated, URLs that get query-normalized burn a 10s fallback
-// there, so the navigate window must exceed it or the retry double-fires.
+// navigate waits for tab load + content-script ready inside the addon.
+// navigate resolves on the first onUpdated status:"complete" (event-driven
+// since the addon speedup); slow sites burn the addon 10s fallback, so the
+// MCP window must exceed that or the retry double-fires.
 const NAVIGATE_TIMEOUT = 15000;
 const SEND_RETRIES = 2;
 // Mutating actions whose response may be lost when the page handles the click
