@@ -33,32 +33,32 @@ The MCP server talks to opencode over stdio. It forwards commands through a Unix
 
 ## Requirements
 
-- [opencode](https://opencode.ai)
+- [omp](https://github.com/can1357/oh-my-pi) (primary) or [opencode](https://opencode.ai)
 - [Firefox](https://www.mozilla.org/firefox/)
 - [Node.js](https://nodejs.org) ≥ 18
 
 ## Install
 
+One-liner (Linux/macOS, incl. WSL):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jordandubu/browser-bridge/main/install.sh | bash
+```
+
+or from a checkout:
+
 ```bash
 git clone https://github.com/jordandubu/browser-bridge
 cd browser-bridge
-npm install
 ./install.sh
 ```
 
-`install.sh` registers the native messaging host with Firefox. Then add this to `~/.config/opencode/opencode.jsonc`:
+`install.sh` registers the Firefox native messaging host and wires the MCP server
+into **omp** (`~/.omp/agent/mcp.json`) — and into opencode too if its config
+exists. No manual config editing.
 
-```jsonc
-"mcp": {
-  "browser-bridge": {
-    "type": "local",
-    "command": "node",
-    "args": ["/path/to/browser-bridge/host/mcp-server.js"]
-  }
-}
-```
-
-Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org). Restart opencode.
+Install the addon from the [Firefox Add-ons store](https://addons.mozilla.org),
+restart omp, and the `browser_*` tools are available (`/mcp list` to confirm).
 
 ## Tools
 

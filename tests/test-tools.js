@@ -4,7 +4,7 @@ const http = require("http");
 const { execSync } = require("child_process");
 
 const SOCK = "/tmp/browser-bridge.sock";
-const TEST_URL = "http://localhost:8765/test-page.html";
+const TEST_URL = "http://localhost:8766/test-page.html";
 const TIMEOUT = 10000;
 
 let passed = 0;
@@ -70,7 +70,7 @@ async function main() {
       if (res.statusCode === 200) resolve();
       else reject(new Error(`server returned ${res.statusCode}`));
     });
-    req.on("error", () => reject(new Error("test server not running on :8765. Start with: python3 -m http.server 8765")));
+    req.on("error", () => reject(new Error("test server not running on :8766. Start with: python3 -m http.server 8766")));
     req.setTimeout(3000, () => { req.destroy(); reject(new Error("test server timeout")); });
   }).catch(e => { console.log(`SKIP: ${e.message}`); process.exit(1); });
 

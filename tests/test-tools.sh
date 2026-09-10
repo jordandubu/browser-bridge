@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 # Kill any stale test processes from a previous run first.
 pkill -f "host/host.js" 2>/dev/null || true
 pkill -f "firefox-profile" 2>/dev/null || true
-pkill -f "http.server 8765" 2>/dev/null || true
+pkill -f "http.server 8766" 2>/dev/null || true
 sleep 1
 rm -f /tmp/browser-bridge.sock
 
@@ -22,8 +22,8 @@ cleanup() {
 trap cleanup EXIT
 
 # Start test HTTP server (test-page.html lives in this dir)
-echo "[1/4] Starting test server on :8765..."
-python3 -m http.server 8765 --bind 127.0.0.1 &
+echo "[1/4] Starting test server on :8766..."
+python3 -m http.server 8766 --bind 127.0.0.1 &
 SERVER_PID=$!
 sleep 1
 

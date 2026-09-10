@@ -351,6 +351,7 @@ async function handle(line) {
         } else {
           result = { error: "unknown tool: " + name };
         }
+        respond(id, { content: [{ type: "text", text: JSON.stringify(result) }] });
       } catch (e) {
         respond(id, { content: [{ type: "text", text: JSON.stringify({ error: e.message }) }], isError: true });
       }
