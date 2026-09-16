@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const net = require("net");
+const fs = require("fs");
+const path = require("path");
 
 const SOCK = process.env.BRIDGE_SOCK || "/tmp/browser-bridge.sock";
 
@@ -173,6 +175,19 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {} }
   },
   {
+    name: "browser_dialog",
+    description: "Handle native alert()/confirm()/prompt() dialogs. These are browser chrome, not DOM, so they can't be clicked — the addon intercepts them in the page and queues them. IMPORTANT: confirm()/prompt() return synchronously, so you must ARM the answer BEFORE triggering the dialog. Actions: 'list' (default) returns dialogs that have fired [{type, message, defaultValue}]; 'answer' arms a response for the next matching dialog — pass type:'confirm' with accept:true/false (default true), or type:'prompt' with value (default ''), or type:'alert' (fire-and-forget, auto-dismissed); 'clear' drops all queued dialogs and armed answers. Workflow: browser_dialog answer (arm) → trigger the action that pops the dialog → browser_dialog list to confirm it fired.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", description: "'list' (default), 'answer', or 'clear'" },
+        type: { type: "string", description: "For answer: 'alert', 'confirm', or 'prompt' — the dialog type to arm a response for" },
+        accept: { type: "boolean", description: "For answer type=confirm: true to accept (OK), false to dismiss (Cancel). Default true." },
+        value: { type: "string", description: "For answer type=prompt: the text to submit. Default ''." }
+      }
+    }
+  },
+  {
     name: "browser_clear_storage",
     description: "Clear localStorage and sessionStorage of the active tab. Use to reset page state (cart, session, evidence) before a fresh task run.",
     inputSchema: { type: "object", properties: {} }
@@ -258,6 +273,18 @@ const TOOLS = [
     }
   },
   {
+    name: "browser_upload",
+    description: "Upload a local file to a file input on the active tab. Reads the file from disk on the host, base64-encodes it, and sets it on the target <input type=file> (fires change). selector can be a CSS selector, #id, [name=value], or :has-text('...'). Returns the file name, size, and whether the input accepted it. Use when a page needs a real file (CV upload, resume, etc.).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        selector: { type: "string", description: "CSS selector, #id, [name=value], or :has-text('...') for the <input type=file> element. Append |index=N when the selector matches multiple elements." },
+        filePath: { type: "string", description: "Absolute path to the local file to upload" }
+      },
+      required: ["selector", "filePath"]
+    }
+  },
+  {
     name: "browser_event_listeners",
     description: "Enumerate inline event handlers (onclick, onsubmit, onchange, etc.) and interactive elements (forms, buttons, links, inputs) on the page. Use to find client-side attack surface.",
     inputSchema: { type: "object", properties: {} }
@@ -317,6 +344,8 @@ async function handle(line) {
           result = await send({ cmd: "wait", selector: args.selector, timeout: args.timeout });
         } else if (name === "browser_toast") {
           result = await send({ cmd: "toast" });
+        } else if (name === "browser_dialog") {
+          result = await send({ cmd: "dialog", action: args.action || "list", accept: args.accept, value: args.value });
         } else if (name === "browser_clear_storage") {
           result = await send({ cmd: "clear_storage" });
         } else if (name === "browser_html") {
@@ -347,6 +376,24 @@ async function handle(line) {
           result = await send({ cmd: "websocket" });
         } else if (name === "browser_strip_headers") {
           result = await send({ cmd: "strip_headers", active: args.active });
+        } else if (name === "browser_upload") {
+          const filePath = path.resolve(args.filePath);
+          let stat;
+          try {
+            stat = fs.statSync(filePath);
+          } catch (e) {
+            respond(id, { content: [{ type: "text", text: JSON.stringify({ error: "cannot read file: " + e.message }) }], isError: true });
+            return;
+          }
+          if (!stat.isFile()) {
+            respond(id, { content: [{ type: "text", text: JSON.stringify({ error: "not a file: " + filePath }) }], isError: true });
+            return;
+          }
+          const data = fs.readFileSync(filePath);
+          const base64 = data.toString("base64");
+          const fileName = path.basename(filePath);
+          const mime = fileName.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream";
+          result = await send({ cmd: "upload", selector: args.selector, fileName, mime, base64, size: data.length });
         } else if (name === "browser_event_listeners") {
           result = await send({ cmd: "event_listeners" });
         } else {

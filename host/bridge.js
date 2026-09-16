@@ -29,6 +29,7 @@ sock.on("data", chunk => {
 const cmd = process.argv[2] || "read";
 const arg1 = process.argv[3] || "";
 const arg2 = process.argv[4] || "";
+const arg3 = process.argv[5] || "";
 
 const msg = { cmd };
 
@@ -42,6 +43,13 @@ if (cmd === "js") {
   msg.tabId = parseInt(arg2) || 0;
 } else if (cmd === "strip_headers") {
   msg.active = arg1 === "true";
+} else if (cmd === "dialog") {
+  msg.action = arg1 || "list";
+  if (msg.action === "answer") {
+    msg.type = arg2 || "alert";
+    if (arg3 === "true" || arg3 === "false") msg.accept = arg3 === "true";
+    else if (arg3) msg.value = arg3;
+  }
 }
 
 sock.write(JSON.stringify(msg) + "\n");

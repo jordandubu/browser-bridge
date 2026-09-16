@@ -1,6 +1,6 @@
 (function installHooks() {
   const s = document.createElement("script");
-  s.textContent = "if(!window.__bridge_hooks_installed){window.__bridge_hooks_installed=true;window.__bridge_console_logs=[];window.__bridge_network_logs=[];window.__bridge_postmessage_logs=[];window.__bridge_ws_logs=[];['log','error','warn','info','debug'].forEach(function(m){var o=console[m];console[m]=function(){var a=[];for(var i=0;i<arguments.length;i++){try{a.push(typeof arguments[i]==='object'?JSON.stringify(arguments[i]):String(arguments[i]))}catch(e){a.push(String(arguments[i]))}}window.__bridge_console_logs.push({level:m,args:a,ts:Date.now()});if(window.__bridge_console_logs.length>500)window.__bridge_console_logs.shift();o.apply(console,arguments)}});var of=window.fetch;window.fetch=function(u,o){var s=Date.now();var e={type:'fetch',method:(o&&o.method)||'GET',url:String(u),start:s};if(o&&o.body){try{e.reqBody=String(o.body).slice(0,1000)}catch(_){}}if(o&&o.headers){try{var h={};if(o.headers instanceof Headers){o.headers.forEach(function(v,k){h[k]=v})}else{for(var k in o.headers)h[k]=o.headers[k]}e.reqHeaders=h}catch(_){}}return of.apply(this,arguments).then(function(r){e.status=r.status;e.duration=Date.now()-s;try{var c=r.clone();c.text().then(function(t){e.resBody=t.slice(0,2000)}).catch(function(){})}catch(_){}window.__bridge_network_logs.push(e);if(window.__bridge_network_logs.length>200)window.__bridge_network_logs.shift();return r}).catch(function(err){e.error=err.message;e.duration=Date.now()-s;window.__bridge_network_logs.push(e);throw err})};var OX=window.XMLHttpRequest;window.XMLHttpRequest=function(){var x=new OX();var e={type:'xhr',method:'GET',url:'',start:0};var oo=x.open;x.open=function(m,u){e.method=m;e.url=String(u);return oo.apply(this,arguments)};var osh=x.setRequestHeader;x.setRequestHeader=function(n,v){if(!e.reqHeaders)e.reqHeaders={};e.reqHeaders[n]=v;return osh.apply(this,arguments)};var os=x.send;x.send=function(b){if(b){try{e.reqBody=String(b).slice(0,1000)}catch(_){}}e.start=Date.now();x.addEventListener('load',function(){e.status=x.status;e.duration=Date.now()-e.start;try{e.resBody=String(x.responseText).slice(0,2000)}catch(_){}window.__bridge_network_logs.push(e);if(window.__bridge_network_logs.length>200)window.__bridge_network_logs.shift()});x.addEventListener('error',function(){e.error='Network error';e.duration=Date.now()-e.start;window.__bridge_network_logs.push(e)});return os.apply(this,arguments)};return x};var opm=window.postMessage;window.postMessage=function(d,to,tr){window.__bridge_postmessage_logs.push({origin:window.location.origin,data:typeof d==='object'?JSON.stringify(d):String(d),source:'self',ts:Date.now()});if(window.__bridge_postmessage_logs.length>200)window.__bridge_postmessage_logs.shift();return opm.apply(this,arguments)};window.addEventListener('message',function(e){window.__bridge_postmessage_logs.push({origin:e.origin,data:typeof e.data==='object'?JSON.stringify(e.data):String(e.data),source:e.source===window?'self':'iframe',ts:Date.now()});if(window.__bridge_postmessage_logs.length>200)window.__bridge_postmessage_logs.shift()});var OWS=window.WebSocket;window.WebSocket=function(url,protocols){window.__bridge_ws_logs.push({url:String(url),direction:'connect',data:'',ts:Date.now()});var ws=new OWS(url,protocols);var osend=ws.send;ws.send=function(d){window.__bridge_ws_logs.push({url:String(url),direction:'send',data:String(d).slice(0,2000),ts:Date.now()});return osend.apply(this,arguments)};ws.addEventListener('message',function(e){window.__bridge_ws_logs.push({url:String(url),direction:'recv',data:String(e.data).slice(0,2000),ts:Date.now()})});return ws}}";
+  s.textContent = "if(!window.__bridge_hooks_installed){window.__bridge_hooks_installed=true;window.__bridge_console_logs=[];window.__bridge_network_logs=[];window.__bridge_postmessage_logs=[];window.__bridge_ws_logs=[];['log','error','warn','info','debug'].forEach(function(m){var o=console[m];console[m]=function(){var a=[];for(var i=0;i<arguments.length;i++){try{a.push(typeof arguments[i]==='object'?JSON.stringify(arguments[i]):String(arguments[i]))}catch(e){a.push(String(arguments[i]))}}window.__bridge_console_logs.push({level:m,args:a,ts:Date.now()});if(window.__bridge_console_logs.length>500)window.__bridge_console_logs.shift();o.apply(console,arguments)}});var of=window.fetch;window.fetch=function(u,o){var s=Date.now();var e={type:'fetch',method:(o&&o.method)||'GET',url:String(u),start:s};if(o&&o.body){try{e.reqBody=String(o.body).slice(0,1000)}catch(_){}}if(o&&o.headers){try{var h={};if(o.headers instanceof Headers){o.headers.forEach(function(v,k){h[k]=v})}else{for(var k in o.headers)h[k]=o.headers[k]}e.reqHeaders=h}catch(_){}}return of.apply(this,arguments).then(function(r){e.status=r.status;e.duration=Date.now()-s;try{var c=r.clone();c.text().then(function(t){e.resBody=t.slice(0,2000)}).catch(function(){})}catch(_){}window.__bridge_network_logs.push(e);if(window.__bridge_network_logs.length>200)window.__bridge_network_logs.shift();return r}).catch(function(err){e.error=err.message;e.duration=Date.now()-s;window.__bridge_network_logs.push(e);throw err})};var OX=window.XMLHttpRequest;window.XMLHttpRequest=function(){var x=new OX();var e={type:'xhr',method:'GET',url:'',start:0};var oo=x.open;x.open=function(m,u){e.method=m;e.url=String(u);return oo.apply(this,arguments)};var osh=x.setRequestHeader;x.setRequestHeader=function(n,v){if(!e.reqHeaders)e.reqHeaders={};e.reqHeaders[n]=v;return osh.apply(this,arguments)};var os=x.send;x.send=function(b){if(b){try{e.reqBody=String(b).slice(0,1000)}catch(_){}}e.start=Date.now();x.addEventListener('load',function(){e.status=x.status;e.duration=Date.now()-e.start;try{e.resBody=String(x.responseText).slice(0,2000)}catch(_){}window.__bridge_network_logs.push(e);if(window.__bridge_network_logs.length>200)window.__bridge_network_logs.shift()});x.addEventListener('error',function(){e.error='Network error';e.duration=Date.now()-e.start;window.__bridge_network_logs.push(e)});return os.apply(this,arguments)};return x};var opm=window.postMessage;window.postMessage=function(d,to,tr){window.__bridge_postmessage_logs.push({origin:window.location.origin,data:typeof d==='object'?JSON.stringify(d):String(d),source:'self',ts:Date.now()});if(window.__bridge_postmessage_logs.length>200)window.__bridge_postmessage_logs.shift();return opm.apply(this,arguments)};window.addEventListener('message',function(e){window.__bridge_postmessage_logs.push({origin:e.origin,data:typeof e.data==='object'?JSON.stringify(e.data):String(e.data),source:e.source===window?'self':'iframe',ts:Date.now()});if(window.__bridge_postmessage_logs.length>200)window.__bridge_postmessage_logs.shift()});var OWS=window.WebSocket;window.WebSocket=function(url,protocols){window.__bridge_ws_logs.push({url:String(url),direction:'connect',data:'',ts:Date.now()});var ws=new OWS(url,protocols);var osend=ws.send;ws.send=function(d){window.__bridge_ws_logs.push({url:String(url),direction:'send',data:String(d).slice(0,2000),ts:Date.now()});return osend.apply(this,arguments)};ws.addEventListener('message',function(e){window.__bridge_ws_logs.push({url:String(url),direction:'recv',data:String(e.data).slice(0,2000),ts:Date.now()})});return ws};window.__bridge_dialog_queue=[];window.__bridge_dialog_answers=[];window.__bridge_arm_answer=function(t,val){window.__bridge_dialog_answers.push({type:t,value:val});return true};window.__bridge_clear_dialogs=function(){var n=window.__bridge_dialog_queue.length;window.__bridge_dialog_queue.length=0;window.__bridge_dialog_answers.length=0;return n};function __bridge_consume_answer(t){for(var i=0;i<window.__bridge_dialog_answers.length;i++){if(window.__bridge_dialog_answers[i].type===t){var v=window.__bridge_dialog_answers.splice(i,1)[0].value;return {v:v}}}return null}window.alert=function(m){window.__bridge_dialog_queue.push({type:'alert',message:String(m),ts:Date.now()});if(window.__bridge_dialog_queue.length>50)window.__bridge_dialog_queue.shift()};window.confirm=function(m){window.__bridge_dialog_queue.push({type:'confirm',message:String(m),ts:Date.now()});if(window.__bridge_dialog_queue.length>50)window.__bridge_dialog_queue.shift();var a=__bridge_consume_answer('confirm');if(a)return a.v===true;return true};window.prompt=function(m,d){window.__bridge_dialog_queue.push({type:'prompt',message:String(m),defaultValue:d==null?null:String(d),ts:Date.now()});if(window.__bridge_dialog_queue.length>50)window.__bridge_dialog_queue.shift();var a=__bridge_consume_answer('prompt');if(a)return a.v;return d==null?null:String(d)}}";
   document.documentElement.appendChild(s);
   s.remove();
 })();
@@ -454,6 +454,77 @@ browser.runtime.onMessage.addListener(async msg => {
         toastSeenAt = now;
         return pick ? pick.text + " (faded)" : null;
       })() });
+    case "dialog": {
+      try {
+        const page = window.wrappedJSObject;
+        if (msg.action === "list") {
+          const queue = page.__bridge_dialog_queue || [];
+          const dialogs = [];
+          for (let i = 0; i < queue.length; i++) {
+            try {
+              const d = JSON.parse(JSON.stringify(queue[i]));
+              dialogs.push({ type: d.type, message: d.message, defaultValue: d.defaultValue != null ? d.defaultValue : null, ts: d.ts });
+            } catch (e) { dialogs.push({ _error: e.message }); }
+          }
+          return Promise.resolve({ dialogs, url: location.href });
+        }
+        if (msg.action === "answer") {
+          // Arm a response for the next matching dialog. confirm()/prompt()
+          // return synchronously, so the answer must be set BEFORE the page
+          // triggers the dialog; alert() is fire-and-forget (dismissed).
+          // The answer object is created in PAGE context (window.wrappedJSObject)
+          // because the page's consume helper reads .type/.value and can't
+          // access content-script objects (Firefox Xray restriction).
+          if (msg.type === "alert") {
+            page.__bridge_arm_answer("alert", true);
+            return Promise.resolve({ armed: { type: "alert" }, note: "alert() is fire-and-forget; it will be dismissed automatically when it fires" });
+          }
+          if (msg.type === "confirm") {
+            const accept = msg.accept !== false;
+            page.__bridge_arm_answer("confirm", accept);
+            return Promise.resolve({ armed: { type: "confirm", accept } });
+          }
+          if (msg.type === "prompt") {
+            const value = msg.value != null ? String(msg.value) : "";
+            page.__bridge_arm_answer("prompt", value);
+            return Promise.resolve({ armed: { type: "prompt", value } });
+          }
+          return Promise.resolve({ error: "unknown dialog type: " + msg.type + " (use 'alert', 'confirm', or 'prompt')" });
+        }
+        if (msg.action === "clear") {
+          const n = page.__bridge_clear_dialogs();
+          return Promise.resolve({ cleared: n });
+        }
+        return Promise.resolve({ error: "unknown action: " + msg.action });
+      } catch (e) { return Promise.resolve({ error: e.message }); }
+    }
+    case "upload": {
+      try {
+        const r = resolveElement(msg.selector, true);
+        if (r.error) return Promise.resolve({ error: r.error, matched: r.matched || lastMatches });
+        const input = r.el;
+        if (!(input instanceof HTMLInputElement) || input.type !== "file") {
+          return Promise.resolve({ error: "selector does not match an <input type=file> (got " + input.tagName + (input.type ? " type=" + input.type : "") + ")" });
+        }
+        // Decode base64 in page context and build a real File so the input
+        // reports a real name/size/type (a bare DataTransfer with an empty
+        // File shows 0 bytes).
+        const bytes = atob(msg.base64);
+        const buf = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+        const file = new File([buf], msg.fileName, { type: msg.mime || "application/octet-stream" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        return Promise.resolve({
+          uploaded: { name: file.name, size: file.size, type: file.type },
+          inputFiles: input.files.length,
+          matched: r.matched,
+          ambiguous: r.ambiguous
+        });
+      } catch (e) { return Promise.resolve({ error: e.message }); }
+    }
     case "js":
       try {
         // expose page globals as `page` so the model can call page functions,

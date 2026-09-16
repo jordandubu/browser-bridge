@@ -99,6 +99,14 @@
   <p>Toggle via MCP: <code>browser_strip_headers active:true</code> then reload to see CSP stripped.</p>
 </section>
 
+<section id="dialog">
+  <h2>browser_dialog</h2>
+  <button onclick="triggerAlert()">Trigger alert()</button>
+  <button onclick="triggerConfirm()">Trigger confirm()</button>
+  <button onclick="triggerPrompt()">Trigger prompt()</button>
+  <div class="result" id="dialog-result"></div>
+</section>
+
 <script>
 function triggerConsole() {
   console.log("test-log", { key: "value" });
@@ -172,6 +180,21 @@ function setStorage() {
   localStorage.setItem("test-key", "local-storage-value");
   sessionStorage.setItem("test-session", "session-storage-value");
   document.getElementById("storage-result").textContent = "Cookie + localStorage + sessionStorage set. Check browser_storage.";
+}
+
+function triggerAlert() {
+  alert("test-alert-message");
+  document.getElementById("dialog-result").textContent = "alert() returned. Check browser_dialog.";
+}
+
+function triggerConfirm() {
+  var ok = confirm("test-confirm-message");
+  document.getElementById("dialog-result").textContent = "confirm() returned " + ok + ". Check browser_dialog.";
+}
+
+function triggerPrompt() {
+  var v = prompt("test-prompt-message", "default-value");
+  document.getElementById("dialog-result").textContent = "prompt() returned " + JSON.stringify(v) + ". Check browser_dialog.";
 }
 
 // DOM sink triggers

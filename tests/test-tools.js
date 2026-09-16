@@ -21,6 +21,7 @@ function ok(name) {
 }
 
 function send(msg) {
+  console.log(`SEND ${msg._id} cmd=${msg.cmd} ${msg.action || ""} ${msg.type || ""}`);
   return new Promise((resolve, reject) => {
     const sock = net.createConnection(SOCK);
     let buf = "";
@@ -247,6 +248,47 @@ async function main() {
     } finally {
       server.kill();
     }
+  });
+
+  // --- browser_dialog ---
+  await test("browser_dialog", async () => {
+    // alert: arm (fire-and-forget), trigger, confirm it fired
+    await send({ cmd: "dialog", action: "answer", type: "alert", _id: 22 });
+    await send({ cmd: "js", code: "window.wrappedJSObject.triggerAlert()", _id: 23 });
+    await new Promise(r => setTimeout(r, 300));
+    let r = await send({ cmd: "dialog", action: "list", _id: 24 });
+    assert(!r.error, r.error);
+    assert(Array.isArray(r.dialogs) && r.dialogs.length === 1, "alert not queued: " + JSON.stringify(r));
+    assert(r.dialogs[0].type === "alert" && r.dialogs[0].message === "test-alert-message", "wrong alert: " + JSON.stringify(r.dialogs[0]));
+
+    // confirm: arm accept:false BEFORE triggering, verify confirm() returned false
+    await send({ cmd: "dialog", action: "answer", type: "confirm", accept: false, _id: 25 });
+    const jsr = await send({ cmd: "js", code: "window.wrappedJSObject.triggerConfirm()", _id: 26 });
+    console.log("DEBUG jsr:", JSON.stringify(jsr));
+    await new Promise(r => setTimeout(r, 300));
+    r = await send({ cmd: "dialog", action: "list", _id: 27 });
+    console.log("DEBUG queue:", JSON.stringify(r));
+    assert(!r.error && r.dialogs.length === 1 && r.dialogs[0].type === "confirm", "confirm not queued: " + JSON.stringify(r));
+    r = await send({ cmd: "js", code: "document.getElementById('dialog-result').textContent", _id: 28 });
+    assert(r.result && r.result.includes("false"), "confirm() did not return false: " + JSON.stringify(r));
+
+    // prompt: arm a value BEFORE triggering, verify prompt() returned it
+    await send({ cmd: "dialog", action: "answer", type: "prompt", value: "typed-answer", _id: 29 });
+    await send({ cmd: "js", code: "window.wrappedJSObject.triggerPrompt()", _id: 30 });
+    await new Promise(r => setTimeout(r, 300));
+    r = await send({ cmd: "dialog", action: "list", _id: 31 });
+    assert(!r.error && r.dialogs.length === 1 && r.dialogs[0].type === "prompt", "prompt not queued: " + JSON.stringify(r));
+    assert(r.dialogs[0].defaultValue === "default-value", "prompt defaultValue missing: " + JSON.stringify(r.dialogs[0]));
+    r = await send({ cmd: "js", code: "document.getElementById('dialog-result').textContent", _id: 32 });
+    assert(r.result && r.result.includes("typed-answer"), "prompt() did not return typed value: " + JSON.stringify(r));
+
+    // clear
+    await send({ cmd: "js", code: "window.wrappedJSObject.triggerAlert()", _id: 33 });
+    await new Promise(r => setTimeout(r, 300));
+    r = await send({ cmd: "dialog", action: "clear", _id: 34 });
+    assert(!r.error && r.cleared === 1, "clear failed: " + JSON.stringify(r));
+    r = await send({ cmd: "dialog", action: "list", _id: 35 });
+    assert(!r.error && r.dialogs.length === 0, "queue not empty after clear: " + JSON.stringify(r));
   });
 
   console.log(`\n${passed} passed, ${failed} failed, ${passed + failed} total`);

@@ -120,7 +120,7 @@ function connect() {
           err => reply(msg, { error: err.message })
         );
       } else {
-        browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+        browser.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
           if (!tabs.length) {
             reply(msg, { error: "no active tab" });
             return;
@@ -139,7 +139,7 @@ function connect() {
       return;
     }
     if (msg.cmd === "network") {
-      browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+      browser.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
         if (!tabs.length) {
           reply(msg, { error: "no active tab" });
           return;
@@ -151,11 +151,11 @@ function connect() {
     }
     if (msg.cmd === "tabs") {
       if (msg.action === "list") {
-        browser.tabs.query({ currentWindow: true }).then(tabs => {
+        browser.tabs.query({}).then(tabs => {
           reply(msg, { tabs: tabs.map((t, i) => ({ index: i, id: t.id, title: t.title, url: t.url, active: t.active })) });
         });
       } else if (msg.action === "switch") {
-        browser.tabs.query({ currentWindow: true }).then(tabs => {
+        browser.tabs.query({}).then(tabs => {
           let target = null;
           let via = null;
           if (msg.tabId != null) {
@@ -176,7 +176,7 @@ function connect() {
           );
         });
       } else if (msg.action === "close") {
-        browser.tabs.query({ currentWindow: true }).then(tabs => {
+        browser.tabs.query({}).then(tabs => {
           let target = null;
           let via = null;
           if (msg.tabId != null) {
@@ -206,10 +206,12 @@ function connect() {
       reply(msg, { stripHeadersActive, stripped: STRIP_HEADERS });
       return;
     }
-    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+    browser.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
       if (!tabs.length) {
-        reply(msg, { error: "no active tab" });
-        return;
+        return browser.tabs.query({ active: true }).then(tabs2 => {
+          if (!tabs2.length) { reply(msg, { error: "no active tab" }); return; }
+          sendWithRetry(msg, tabs2[0].id, 10);
+        });
       }
       sendWithRetry(msg, tabs[0].id, 10);
     });

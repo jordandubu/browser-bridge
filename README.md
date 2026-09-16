@@ -71,6 +71,7 @@ restart omp, and the `browser_*` tools are available (`/mcp list` to confirm).
 | `browser_js` | Run arbitrary JavaScript and return the result |
 | `browser_navigate` | Navigate to a URL (new tab by default, or reuse current tab) |
 | `browser_tabs` | List all open tabs or switch to a specific tab by index |
+| `browser_dialog` | Handle native `alert()`/`confirm()`/`prompt()` dialogs — list pending, answer (accept/dismiss/type), or clear |
 
 ### Recon & Monitoring
 
@@ -122,6 +123,18 @@ opencode → browser_cors → returns cross-origin resources
 opencode: "3 cross-origin scripts, 1 cross-origin stylesheet. Test each for misconfigured CORS"
 ```
 
+### Example: native dialogs
+
+Native `alert()`/`confirm()`/`prompt()` dialogs are browser chrome, not DOM, so they can't be clicked. The addon intercepts them in the page and queues them instead of blocking. Because `confirm()`/`prompt()` return synchronously, arm the answer **before** triggering the dialog:
+
+```
+User: the admin page will pop a confirm — accept it
+opencode → browser_dialog answer type:confirm accept:true
+opencode → browser_click selector:"Delete all users"
+opencode → browser_dialog list → [{type: "confirm", message: "Delete all users?"}]
+opencode: "confirm accepted, page JS continued"
+```
+
 ## CLI
 
 For testing without opencode:
@@ -138,6 +151,12 @@ node host/bridge.js cors              # find cross-origin resources
 node host/bridge.js postmessage       # capture postMessage events
 node host/bridge.js websocket         # capture WebSocket messages
 node host/bridge.js event_listeners   # enumerate event handlers
+node host/bridge.js dialog list       # list dialogs that have fired
+node host/bridge.js dialog answer alert  # arm: auto-dismiss the next alert
+node host/bridge.js dialog answer confirm true  # arm: accept the next confirm
+node host/bridge.js dialog answer confirm false # arm: dismiss the next confirm
+node host/bridge.js dialog answer prompt "my input"  # arm: answer the next prompt
+node host/bridge.js dialog clear      # drop all queued dialogs + armed answers
 node host/bridge.js strip_headers true  # strip security headers
 node host/bridge.js strip_headers false # restore headers
 node host/bridge.js navigate "https://example.com"  # navigate
