@@ -17,20 +17,32 @@ on:
       path:
         description: "Subdirectory containing the extension source"
         default: "addon"
+      build:
+        description: "Run esbuild first (node build.mjs inside path)"
+        default: ""
 
 jobs:
   sign:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.event_name == 'workflow_dispatch' && inputs.repo && 'target' || '.' }}
     env:
-      TARGET_REPO: ${{ github.repository }}
-      TARGET_REF: ${{ github.ref }}
       TARGET_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.path || 'addon' }}
     steps:
       - uses: actions/checkout@v4
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.repo) }}
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repo }}
         with:
-          repository: ${{ github.event_name == 'workflow_dispatch' && inputs.repo || github.repository }}
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
-      - run: npx web-ext build --source-dir "$TARGET_PATH" --artifacts-dir "$TARGET_PATH-artifacts" --overwrite-dest
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
+          path: target
+      - name: Build (optional esbuild)
+        if: inputs.build != ''
+        run: npm ci && npm run build
+        working-directory: target/${{ env.TARGET_PATH }}
+      - run: npx web-ext lint --source-dir "$TARGET_PATH"
       - run: npx web-ext sign --source-dir "$TARGET_PATH" --channel listed --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET"
         env:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
@@ -38,5 +50,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: signed-xpi
-          path: ${{ env.TARGET_PATH }}/*.xpi
+          path: target/${{ env.TARGET_PATH }}/*.xpi
           if-no-files-found: error
