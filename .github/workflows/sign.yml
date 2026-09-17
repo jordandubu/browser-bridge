@@ -7,14 +7,36 @@ on:
       - addon/**
       - package.json
   workflow_dispatch:
+    inputs:
+      repo:
+        description: "Repo to sign (owner/name); defaults to this repo"
+        default: ""
+      ref:
+        description: "Branch/tag/SHA of the target repo"
+        default: ""
+      path:
+        description: "Subdirectory containing the extension source"
+        default: "addon"
 
 jobs:
   sign:
     runs-on: ubuntu-latest
+    env:
+      TARGET_REPO: ${{ github.repository }}
+      TARGET_REF: ${{ github.ref }}
+      TARGET_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.path || 'addon' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: jetify-com/devbox-install-action@v0.12.0
-      - run: timeout 600 devbox run sign
+        with:
+          repository: ${{ github.event_name == 'workflow_dispatch' && inputs.repo || github.repository }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+      - run: npx web-ext build --source-dir "$TARGET_PATH" --artifacts-dir "$TARGET_PATH-artifacts" --overwrite-dest
+      - run: npx web-ext sign --source-dir "$TARGET_PATH" --channel listed --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET"
         env:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-xpi
+          path: ${{ env.TARGET_PATH }}/*.xpi
+          if-no-files-found: error
