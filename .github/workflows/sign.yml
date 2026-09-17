@@ -43,7 +43,8 @@ jobs:
         run: npm ci && npm run build
         working-directory: target/${{ env.TARGET_PATH }}
       - run: npx web-ext lint --source-dir "$TARGET_PATH"
-      - run: npx web-ext sign --source-dir "$TARGET_PATH" --channel listed --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET"
+      - run: npx web-ext sign --source-dir "$TARGET_PATH" --channel listed --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET" --amo-metadata "$TARGET_PATH/amo-metadata.json"
+        continue-on-error: ${{ ! hashFiles(format('target/{0}/amo-metadata.json', env.TARGET_PATH)) != '' }}
         env:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
